@@ -25,7 +25,7 @@ This directory contains the configure files and several sub-directories represen
 <a name="libraries"/>
 ## External Libraries
 Amaya uses several external librarie (libwww, Mesa, redland, wxWidgets, freetype). 
-They can be found in the tar file located on the directory Library or in the Amaya page 
+They can be found in the tar file located in the directory Library or in the Amaya page 
 <http://www.w3.org/Amaya/User/SourceDist.html>
 
  

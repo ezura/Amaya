@@ -16,7 +16,7 @@ This follows the original vision of the Web as a space for collaboration and not
 Copyright  ©  1994-2012 INRIA and W3C® (MIT, ERCIM, Keio).
 
 <a name="source"/>
-## Source
+## Sources
 The Amaya Source tree is represented by the directory Amaya of the project.<br/>
 This directory contains the configure files and several sub-directories representing the different parts of the application.
 

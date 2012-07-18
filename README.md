@@ -16,18 +16,23 @@ This follows the original vision of the Web as a space for collaboration and not
 Copyright  ©  1994-2012 INRIA and W3C® (MIT, ERCIM, Keio).
 
 <a name="source"/>
-## Source Download
+## Source
+The Amaya Source tree is represented by the directory Amaya of the project.<br/>
+This directory contains the configure files and several sub-directories representing the different parts of the application.
 
  
  
 <a name="libraries"/>
 ## External Libraries
-
+Amaya uses several external librarie (libwww, Mesa, redland, wxWidgets, freetype). 
+They can be found in the tar file located on the directory Library or in the Amaya page 
+<http://www.w3.org/Amaya/User/SourceDist.html>
 
  
 <a name="compilation"/>
 ## Compilation
-
+ ... <em> to be completed </em> ...
   
 <a name="faq"/>
 ## FAQ
+<http://www.w3.org/Amaya/User/FAQ.html>

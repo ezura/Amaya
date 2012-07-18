@@ -36,3 +36,4 @@ They can be found in the tar file located on the directory Library or in the Ama
 <a name="faq"/>
 ## FAQ
 <http://www.w3.org/Amaya/User/FAQ.html>
+

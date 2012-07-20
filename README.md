@@ -9,7 +9,6 @@ This follows the original vision of the Web as a space for collaboration and not
 - **Homepage:** <http://www.w3.org/Amaya>
 - **Mailing list:** <http://www.w3.org/Amaya/User/Mailing.html>
 - **Source code:** <https://github.com/w3c/Amaya>
-- **Git clone URL:** <http://github.com/w3c/Amaya.git>
 - **Documentation:** <http://www.w3.org/Amaya/User/>
 
 <a name="copyright"/>

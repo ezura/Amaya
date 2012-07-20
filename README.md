@@ -15,11 +15,14 @@ This follows the original vision of the Web as a space for collaboration and not
 <a name="copyright"/>
 Copyright  ©  1994-2012 INRIA and W3C® (MIT, ERCIM, Keio).
 
+<a name="distribution"/>
+## Distributions
+<http://www.w3.org/Amaya/User/BinDist.html>
+
 <a name="source"/>
 ## Sources
-The Amaya Source tree is represented by the directory Amaya of the project.<br/>
-This directory contains the configure files and several sub-directories representing the different parts of the application.
-
+The Amaya Source tree of Amaya can be found in the directory Amaya of this project. 
+(also available from <http://www.w3.org/Amaya/User/SourceDist.html>).
  
  
 <a name="libraries"/>

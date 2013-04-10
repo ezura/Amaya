@@ -43,6 +43,7 @@
 #include "templates_f.h"
 #include "Xml2thot_f.h"
 #include "XHTMLbuilder_f.h"
+#include "HTML5checker.h"
 
 
 /*----------------------------------------------------------------------
@@ -215,7 +216,7 @@ void CheckNotEmptyComponent (Element el, Document doc)
               elType = TtaGetElementType (parent);
               s = TtaGetSSchemaName (elType.ElSSchema);
             }
-          if (!strcmp (s, "HTML"))
+          if (!IsNotHTMLorHTML5 (s))
             {
               if (IsCharacterLevelElement (el))
                 elType.ElTypeNum = HTML_EL_Basic_Elem;
@@ -374,7 +375,7 @@ void TemplateElementComplete (ParserData *context, Element el, int *error)
           if (otherType.ElSSchema &&
               // template string or inline html
               (otherType.ElTypeNum == 1 ||
-               (!strcmp (TtaGetSSchemaName (otherType.ElSSchema), "HTML") &&
+               (!IsNotHTMLorHTML5 (TtaGetSSchemaName (otherType.ElSSchema)) &&
                 IsCharacterLevelElement (child))))
             {
               if (otherType.ElSSchema == elType.ElSSchema)
@@ -387,7 +388,7 @@ void TemplateElementComplete (ParserData *context, Element el, int *error)
                       otherType = TtaGetElementType (ancestor);
                     }
                   if (otherType.ElSSchema &&
-                      strcmp (TtaGetSSchemaName (otherType.ElSSchema), "HTML"))
+                      IsNotHTMLorHTML5 (TtaGetSSchemaName (otherType.ElSSchema)))
                     otherType.ElSSchema = NULL;
                 }
               if (otherType.ElSSchema)

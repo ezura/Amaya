@@ -5,9 +5,8 @@
 
 #ifndef __CEXTRACT__
 #ifdef __STDC__
-
-extern char *SkipSep ( char *ptr );
-extern char *SkipInt ( char *ptr );
+//extern char *SkipSep ( char *ptr );
+//extern char *SkipInt ( char *ptr );
 extern void ParseAreaCoords ( Element element,
                               Document document );
 extern void SetLanguagInHTMLStack ( Language lang );
@@ -46,10 +45,10 @@ extern void GetNextHTMLbuffer ( FILE *infile,
                                 ThotBool *endOfFile,
                                 char **buff,
                                 int *lastchar );
-extern void SetElemLineNumber ( Element el );
-extern char GetNextInputChar ( FILE *infile,
+//extern void SetElemLineNumber ( Element el );
+/*extern char GetNextInputChar ( FILE *infile,
                                int *index,
-                               ThotBool *endOfFile );
+                               ThotBool *endOfFile );*/
 extern void CheckDocHeader ( char *fileName,
                              ThotBool *xmlDec,
                              ThotBool *docType,
@@ -67,8 +66,8 @@ extern void CheckCharsetInMeta ( char *fileName,
 extern void CheckBlocksInCharElem ( Document doc );
 extern void CheckAbstractTree ( Document doc,
                                 ThotBool isXTiger );
-extern void ParseIncludedHTML ( Element elem,
-                                char *closingTag );
+/*extern void ParseIncludedHTML ( Element elem,
+                                char *closingTag );*/
 extern void ParseSubTree ( char* HTMLbuf,
                            Element lastelem,
                            Language language,
@@ -89,8 +88,9 @@ extern void StartParser ( Document doc,
 
 #else /* __STDC__ */
 
-extern char *SkipSep ( char *ptr );
-extern char *SkipInt ( char *ptr );
+//extern char *SkipSep ( char *ptr );
+//extern char *SkipInt ( char *ptr );
+
 extern void ParseAreaCoords ( Element element,
                                 Document document );
 extern void SetLanguagInHTMLStack ( Language lang );
@@ -107,7 +107,7 @@ extern void HTMLParseError ( Document doc,
 extern ThotBool IsCharacterLevelType ( ElementType elType );
 extern ThotBool IsCharacterLevelElement ( Element el );
 extern ThotBool IsBlockElementType ( ElementType elType );
-extern ThotBool IsBlockElement ( Element el );
+extern ThotBool IsBlockElement ( Element el);
 extern void BlockInCharLevelElem ( Element el );
 extern void OnlyOneOptionSelected ( Element el,
                                       Document doc,
@@ -129,10 +129,10 @@ extern void GetNextHTMLbuffer ( FILE *infile,
                                   ThotBool *endOfFile,
                                   char **buff,
                                   int *lastchar );
-extern void SetElemLineNumber ( Element el );
-extern char GetNextInputChar ( FILE *infile,
+//extern void SetElemLineNumber ( Element el );
+/*extern char GetNextInputChar ( FILE *infile,
                                  int *index,
-                                 ThotBool *endOfFile );
+                                 ThotBool *endOfFile );*/
 extern void CheckDocHeader ( char *fileName,
                                ThotBool *xmlDec,
                                ThotBool *docType,
@@ -150,8 +150,8 @@ extern void CheckCharsetInMeta ( char *fileName,
 extern void CheckBlocksInCharElem ( Document doc );
 extern void CheckAbstractTree ( Document doc,
                                   ThotBool isXTiger );
-extern void ParseIncludedHTML ( Element elem,
-                                  char *closingTag );
+/*extern void ParseIncludedHTML ( Element elem,
+                                  char *closingTag );*/
 extern void ParseSubTree ( char* HTMLbuf,
                              Element lastelem,
                              Language language,
@@ -169,6 +169,5 @@ extern void StartParser ( Document doc,
                             const char *pathURL,
                             ThotBool plainText,
                             ThotBool external_doc );
-
 #endif /* __STDC__ */
 #endif /* __CEXTRACT__ */

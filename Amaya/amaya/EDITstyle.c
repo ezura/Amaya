@@ -43,6 +43,7 @@
 #include "html2thot_f.h"
 #include "init_f.h"
 #include "styleparser_f.h"
+#include "HTML5checker.h"
 #ifdef _WINGUI
 #include "wininclude.h"
 #else /* _WINGUI */
@@ -112,7 +113,7 @@ static void RemoveElementStyle (Element el, Document doc, ThotBool removeSpan)
     else
       /* remove the style attribute defined in the HTML DTD */
       {
-        attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+        attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
         attrType.AttrTypeNum = HTML_ATTR_Style_;
       }
   attr = TtaGetAttribute (el, attrType);
@@ -523,7 +524,7 @@ ThotBool UpdateStyleDelete (NotifyAttribute * event)
          to be removed to the (parent) <html> element */
       elType = TtaGetElementType (el);
       if (elType.ElTypeNum == HTML_EL_BODY &&
-          strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+          IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) == 0)
         {
           el = TtaGetParent (el);
           ParseHTMLSpecificStyle (el, style, event->document, 1000, TRUE);
@@ -574,7 +575,7 @@ Attribute GetCurrentStyleAttribute ()
       else if (!strcmp(name, "SVG"))
         attrType.AttrTypeNum = SVG_ATTR_style_;
 #endif /* _SVG */
-      else if (!strcmp(name, "HTML"))
+      else if (!IsNotHTMLorHTML5(name))
         attrType.AttrTypeNum = HTML_ATTR_Style_;
 
       if (attrType.AttrTypeNum)
@@ -630,7 +631,7 @@ void EnableStyleElement (Document doc, Element el)
     {
       elType = TtaGetElementType (el);
       name = TtaGetSSchemaName (elType.ElSSchema);
-      if ((!strcmp (name, "HTML") && elType.ElTypeNum == HTML_EL_STYLE_)
+      if ((!IsNotHTMLorHTML5 (name) && elType.ElTypeNum == HTML_EL_STYLE_)
 #ifdef _SVG
           /* if it's a SVG document, remove the style defined in the SVG DTD */
           || (!strcmp (name, "SVG") && elType.ElTypeNum == SVG_EL_style__)
@@ -672,7 +673,7 @@ void DeleteStyleElement (Document doc, Element el)
       /* get the style element in the document head */
       elType = TtaGetElementType (el);
       name = TtaGetSSchemaName (elType.ElSSchema);
-      if ((!strcmp (name, "HTML") && elType.ElTypeNum == HTML_EL_STYLE_)
+      if ((!IsNotHTMLorHTML5 (name) && elType.ElTypeNum == HTML_EL_STYLE_)
 #ifdef _SVG
           /* if it's a SVG document, remove the style defined in the SVG DTD */
           || (!strcmp (name, "SVG") && elType.ElTypeNum == SVG_EL_style__)
@@ -1093,7 +1094,7 @@ static void DoApplyClass (Document doc)
 #endif
           else
             {
-              attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+              attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
               attrType.AttrTypeNum = HTML_ATTR_Class;
             }
           /* set the Class attribute of the element */
@@ -1230,7 +1231,7 @@ void GetHTMLStyleString (Element el, Document doc, char *buf, int *len)
   /* BODY / HTML elements specific handling */
   elType = TtaGetElementType (el);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp(name, "HTML") == 0)
+  if (IsNotHTMLorHTML5(name) == 0)
     {
       if (elType.ElTypeNum == HTML_EL_Document)
         {
@@ -1299,7 +1300,7 @@ void HTMLSetBackgroundImage (Document doc, Element el, int repeat,
       schName = TtaGetSSchemaName (elType.ElSSchema);
       if (strcmp (schName, "MathML") == 0)
         attrType.AttrTypeNum = MathML_ATTR_style_;
-      else if (!strcmp (schName, "HTML"))
+      else if (!IsNotHTMLorHTML5 (schName))
         /* it's a HTML document */
         attrType.AttrTypeNum = HTML_ATTR_Style_;
 #ifdef _SVG
@@ -1384,7 +1385,7 @@ static void UpdateClass (Document doc)
   if (selType.ElTypeNum != elType.ElTypeNum && selType.ElTypeNum != 0)
     {
       ok = FALSE;
-      if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         {
           if (selType.ElTypeNum == HTML_EL_Input)
             /* the user has chosen element imput */
@@ -1422,7 +1423,7 @@ static void UpdateClass (Document doc)
   elType = TtaGetElementType (root);
   schName = TtaGetSSchemaName (elType.ElSSchema);
   head = NULL;
-  if (!strcmp (schName, "HTML"))
+  if (!IsNotHTMLorHTML5 (schName))
     /* it's a HTML document */
     {
       elType.ElTypeNum = HTML_EL_HEAD;
@@ -1482,7 +1483,7 @@ static void UpdateClass (Document doc)
     /* the STYLE element doesn't exist. Create it */
     {
       el = TtaNewTree (doc, elType, "");
-      if (strcmp (schName, "HTML"))
+      if (IsNotHTMLorHTML5 (schName))
         title = NULL;
       else
         {
@@ -1528,7 +1529,7 @@ static void UpdateClass (Document doc)
 #endif /* _SVG */
   else
     {
-      attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+      attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
       attrType.AttrTypeNum = HTML_ATTR_Style_;
     }
   attr = TtaGetAttribute (ClassReference, attrType);
@@ -1581,7 +1582,7 @@ static void UpdateClass (Document doc)
         else
 #endif
           {
-            attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+            attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
             attrType.AttrTypeNum = HTML_ATTR_Class;
           }
       attr = TtaGetAttribute (ClassReference, attrType);
@@ -1645,7 +1646,7 @@ static void UpdateClass (Document doc)
                 }
             }
         }
-      if (!strcmp (schName, "HTML") && elType.ElTypeNum != HTML_EL_TEXT_UNIT)
+      if (!IsNotHTMLorHTML5 (schName) && elType.ElTypeNum != HTML_EL_TEXT_UNIT)
         {
           if (elType.ElTypeNum != HTML_EL_Comment_)
             /* the last child of the STYLE element is neither a text leaf nor
@@ -1972,7 +1973,7 @@ void CreateClass (Document doc, View view)
   if (elType.ElSSchema)
     {
       schName = TtaGetSSchemaName (elType.ElSSchema);
-      if (strcmp (schName, "HTML") &&
+      if (IsNotHTMLorHTML5 (schName) &&
           strcmp (schName, "SVG") &&
           strcmp (schName, "MathML"))
         /* no class attribute for that element. Do nothing */
@@ -1996,7 +1997,7 @@ void CreateClass (Document doc, View view)
         }
 
       /* update the class name selector. */
-      if (!strcmp (schName, "HTML") && elType.ElTypeNum == HTML_EL_Preformatted)
+      if (!IsNotHTMLorHTML5 (schName) && elType.ElTypeNum == HTML_EL_Preformatted)
         // avoid to convert a pre to listing
         elHtmlName = "pre";
       else
@@ -2076,7 +2077,7 @@ void ApplyClass (Document doc, View view)
   CurrentClass[0] = EOS;
   ApplyClassDoc = doc;
   name =  TtaGetSSchemaName (elType.ElSSchema);
-  if ((strcmp (name, "HTML") && strcmp (name, "MathML") && strcmp (name, "SVG")) ||
+  if ((IsNotHTMLorHTML5 (name) && strcmp (name, "MathML") && strcmp (name, "SVG")) ||
       !TtaGetDocumentAccessMode (doc))
     {
 #ifdef _WX 
@@ -2110,7 +2111,7 @@ void ApplyClass (Document doc, View view)
 #endif /* _SVG */
       else
         {
-          attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+          attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
           attrType.AttrTypeNum = HTML_ATTR_Class;
         }
       ancestor = el;

@@ -158,7 +158,9 @@ AMAYA_LIBS= ../thotlib/libThotEditor.a \
 
 HTML2THOT_LIBS= -L../thotlib/ -lThotKernel -L.. -lz
 
-amaya_schemas : compHTML compHTMLP compHTMLT compTextFile  compTextFileP compTextFileT compXLink compXLinkP compXLinkT compXML compXMLP compXMLT compHTMLA compTextFileA compXLinkA compXMLA $(svg_schema) $(math_schema) $(annot_schema) compEDITORA $(template_schema)
+HTMLFIVE2THOT_LIBS= -L../thotlib/ -lThotKernel -L.. -lz
+
+amaya_schemas : compHTML compHTMLP compHTMLT compHTML5 compHTML5P compHTML5T compTextFile  compTextFileP compTextFileT compXLink compXLinkP compXLinkT compXML compXMLP compXMLT compHTMLA compHTML5A compTextFileA compXLinkA compXMLA $(svg_schema) $(math_schema) $(annot_schema) compEDITORA $(template_schema)
 
 amaya_src : amaya_schemas HTML.h $(AMAYA_SRC) $(MATH_SCHEMAS) $(SVG_SCHEMAS) $(TEMPLATES_SCHEMAS)
 
@@ -182,6 +184,7 @@ amaya_src : amaya_schemas HTML.h $(AMAYA_SRC) $(MATH_SCHEMAS) $(SVG_SCHEMAS) $(T
 CSS_OBJ = \
 	css.o \
 	fetchHTMLname.o \
+	fetchHTML5name.o \
 	fetchXMLname.o \
 	styleparser.o
 
@@ -226,6 +229,7 @@ AMAYA_OBJ = \
 	wxdialogapi.o \
 	EDITORAPP.o \
 	HTMLAPP.o \
+	HTML5APP.o \
 	TextFileAPP.o \
 	XLinkAPP.o \
 	XMLAPP.o \
@@ -243,6 +247,7 @@ AMAYA_OBJ = \
 	HTMLsave.o \
 	HTMLtable.o \
 	html2thot.o \
+	htmlfive2thot.o \
 	init.o \
 	insertelem.o \
 	MENUconf.o \
@@ -312,6 +317,60 @@ $(AMAYA)/HTMLT.TRA : $(AMAYA)/HTMLT.T $(AMAYA)/HTMLTT.T ../bin/tra
 	$$TRA $(ALL_AMAYA_OPTIONS) -DXML HTMLT HTMLTX;\
 	$$TRA $(ALL_AMAYA_OPTIONS) -DXML -DXHTML11 HTMLT HTMLT11;\
 	$$TRA $(ALL_AMAYA_OPTIONS) HTMLTT
+	
+#
+# HTML5 structure schema compilation.
+#
+compHTML5: $(AMAYA)/HTML5.STR
+$(AMAYA)/HTML5.STR : $(AMAYA)/HTML5.S ../bin/str
+	STR=`pwd`/../bin/str;PRS=`pwd`/../bin/prs;TRA=`pwd`/../bin/tra;\
+	cd $(AMAYA); THOTDIR=`pwd`/.. ;export THOTDIR; \
+	$$STR $(ALL_AMAYA_OPTIONS) HTML5 ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) HTML5P ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DPAGE HTML5P HTML5PP ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DPAGE -DLANDSCAPE HTML5P HTML5PL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DUS_PAPER HTML5P HTML5PPUS ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DUS_PAPER -DLANDSCAPE HTML5P HTML5USL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DPAGE HTML5P HTML5PLP ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DPAGE -DLANDSCAPE HTML5P  HTML5PLL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DUS_PAPER HTML5P HTML5PLPUS ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DUS_PAPER -DLANDSCAPE HTML5P HTML5USLL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DBLACK_WHITE HTML5P HTML5PBW ;\
+	$$TRA $(ALL_AMAYA_OPTIONS) HTML5T ;\
+	$$TRA $(ALL_AMAYA_OPTIONS) -DXML HTML5T HTML5TX;\
+	$$TRA $(ALL_AMAYA_OPTIONS) -DXML -DXHTML511 HTML5T HTMLT511;\
+	$$TRA $(ALL_AMAYA_OPTIONS) HTMLTT
+
+#
+# HTML5 presentation schemas compilation
+#
+compHTML5P: $(AMAYA)/HTML5P.PRS
+$(AMAYA)/HTML5P.PRS : $(AMAYA)/HTML5P.P ../bin/prs
+	PRS=`pwd`/../bin/prs ; \
+	cd $(AMAYA); THOTDIR=`pwd`/.. ;export THOTDIR; \
+	$$PRS $(ALL_AMAYA_OPTIONS) HTML5P ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DPAGE HTML5P HTML5PP ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DPAGE -DLANDSCAPE HTML5P HTML5PL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DUS_PAPER HTMLP HTML5PPUS ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DUS_PAPER -DLANDSCAPE HTML5P HTML5USL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DPAGE HTML5P HTML5PLP ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DPAGE -DLANDSCAPE HTML5P  HTML5PLL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DUS_PAPER HTML5P HTML5PLPUS ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DLINK_NUMBER -DUS_PAPER -DLANDSCAPE HTML5P HTML5USLL ;\
+	$$PRS $(ALL_AMAYA_OPTIONS) -DBLACK_WHITE HTML5P HTML5PBW 
+#
+# HTML5 translation schemas compilation
+#
+compHTML5T: $(AMAYA)/HTML5T.TRA
+$(AMAYA)/HTML5T.TRA : $(AMAYA)/HTML5T.T $(AMAYA)/HTML5TT.T ../bin/tra
+	TRA=`pwd`/../bin/tra ; \
+	cd $(AMAYA); THOTDIR=`pwd`/.. ;export THOTDIR ;\
+	$$TRA $(ALL_AMAYA_OPTIONS) HTML5T ;\
+	$$TRA $(ALL_AMAYA_OPTIONS) -DXML HTML5T HTML5TX;\
+	$$TRA $(ALL_AMAYA_OPTIONS) -DXML -DXHTML511 HTML5T HTML5T11;\
+	$$TRA $(ALL_AMAYA_OPTIONS) HTML5TT
+	
+########################################################
 
 #
 # TextFile schemas compilation
@@ -425,7 +484,12 @@ $(AMAYA)/XMLT.TRA : $(AMAYA)/XMLT.T ../bin/tra
 HTMLAPP.o : HTMLAPP.c
 	$(CXX) $(CXXFLAGS) $(ALL_AMAYA_OPTIONS) $(INCLUDES) -c HTMLAPP.c -o $@
 
+HTML5APP.o : HTML5APP.c
+	$(CXX) $(CXXFLAGS) $(ALL_AMAYA_OPTIONS) $(INCLUDES) -c HTML5APP.c -o $@
+
 compHTMLA : HTML.h HTMLAPP.c
+
+compHTML5A : HTML5.h HTML5APP.c
 
 HTML.h HTMLAPP.c : @srcdir@/HTML.STR @srcdir@/HTML.A
 	(if test "@srcdir@" != "" -a "@srcdir@" != "." ; then \
@@ -434,6 +498,14 @@ HTML.h HTMLAPP.c : @srcdir@/HTML.STR @srcdir@/HTML.A
 	fi)
 	THOTDIR=$(THOTDIR) ; export THOTDIR ; \
 	../bin/app $(ALL_AMAYA_OPTIONS) HTML.A
+
+HTML5.h HTML5APP.c : @srcdir@/HTML5.STR @srcdir@/HTML5.A
+	(if test "@srcdir@" != "" -a "@srcdir@" != "." ; then \
+	    $(CP) @srcdir@/HTML5.A .  ; \
+	    $(CP) @srcdir@/HTML5.STR .  ; \
+	fi)
+	THOTDIR=$(THOTDIR) ; export THOTDIR ; \
+	../bin/app $(ALL_AMAYA_OPTIONS) HTML5.A
 
 TextFileAPP.o : TextFileAPP.c
 	$(CXX) $(CXXFLAGS) $(ALL_AMAYA_OPTIONS) $(INCLUDES) -c TextFileAPP.c -o $@

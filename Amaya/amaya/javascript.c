@@ -97,6 +97,7 @@
 #include <commctrl.h>
 #endif /* _WINDOWS */
 #include "XLinkedit_f.h"
+#include "HTML5checker.h"
 
 #define MAXBUFLEN 50
 
@@ -506,7 +507,7 @@ static ThotBool CreateDoctypeObject(JSObject *document_object)
   el_doc = TtaGetMainRoot (jsdocument);
   elType = TtaGetElementType (el_doc);
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     elType.ElTypeNum = HTML_EL_DOCTYPE;
   else if (strcmp (s, "SVG") == 0)
     elType.ElTypeNum = SVG_EL_DOCTYPE;

@@ -107,6 +107,15 @@ static ThotBool GetValidatedCurrentSelection (PtrDocument *pDoc,
     PtrElement *firstSel, PtrElement*lastSel, int *firstChar,int *lastChar);
 
 /*----------------------------------------------------------------------
+  IsHTML5
+  check whether the schema of the document is HTML5.
+  ----------------------------------------------------------------------*/
+static ThotBool IsNotHTMLorHTML5(char *sschemaName)
+{
+  return strcmp (sschemaName, "HTML") && strcmp (sschemaName, "HTML5");
+}
+
+/*----------------------------------------------------------------------
   TtaSetAttributeChangeFunction registers the attribute creation function
   ----------------------------------------------------------------------*/
 void TtaSetAttributeChangeFunction (Proc2 procedure)
@@ -224,7 +233,7 @@ static void MenuValues (TtAttribute *pAttr, ThotBool required,
         else
           i = currAttr->AeAttrValue;
         if (SchCurrentAttr &&
-            !strcmp (SchCurrentAttr->SsName, "HTML") &&
+            !IsNotHTMLorHTML5 (SchCurrentAttr->SsName) &&
             (!strcmp (title, "rowspan") ||
              !strcmp (title, "colspan") ||
              !strcmp (title, "rows") ||
@@ -955,15 +964,15 @@ void CallbackValAttrMenu (int ref, int valmenu, char *valtext)
         }
       tmp = SchCurrentAttr->SsAttribute->TtAttr[NumCurrentAttr - 1]->AttrName;
       isACCESS = (!strcmp (tmp, "accesskey") &&
-                  !strcmp (SchCurrentAttr->SsName, "HTML"));
+                  !IsNotHTMLorHTML5 (SchCurrentAttr->SsName));
       isID = (!strcmp (tmp, "id") ||
               !strcmp (tmp, "xml:id") ||
               (!strcmp (tmp, "name") &&
-               !strcmp (SchCurrentAttr->SsName, "HTML")));
+               !IsNotHTMLorHTML5 (SchCurrentAttr->SsName)));
       isCLASS = !strcmp (tmp, "class");
       isSpan = ((isID || isCLASS ||
                  !strcmp (tmp, "style") || !strcmp (tmp, "lang")) &&
-                  !strcmp (SchCurrentAttr->SsName, "HTML"));
+                  !IsNotHTMLorHTML5 (SchCurrentAttr->SsName));
       if (SchCurrentAttr->SsAttribute->TtAttr[NumCurrentAttr - 1]->AttrType == AtTextAttr && TextAttrValue[0] == EOS)
         return;
       act = valmenu;
@@ -1160,14 +1169,14 @@ void SetAttrValueToRange (PtrAttrListElem elem, intptr_t value)
 
   tmp = AttrListElem_GetName(elem);
   isACCESS = (!strcmp (tmp, "accesskey") &&
-              !strcmp (elem->pSS->SsName, "HTML"));
+              !IsNotHTMLorHTML5 (elem->pSS->SsName));
   //if (!strcmp (tmp, "name") && !strcmp (elem->pSS->SsName, "HTML"))
   isID = (!strcmp (tmp, "id") ||
           !strcmp (tmp, "xml:id"));
   isCLASS = !strcmp (tmp, "class");
   isSpan = ((isID || isCLASS ||
              !strcmp (tmp, "style") || !strcmp (tmp, "lang")) &&
-              !strcmp (elem->pSS->SsName, "HTML"));
+              !IsNotHTMLorHTML5 (elem->pSS->SsName));
   
   /* on ne fait rien si le document ou` se trouve la selection
      n'utilise pas le schema de structure qui definit l'attribut */

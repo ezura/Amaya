@@ -13,22 +13,30 @@
  *          L. Carcone
  *
  */
-
 #define THOT_EXPORT extern
 #include "amaya.h"
 #include "parser.h"
 #include "HTMLnames.h"
+#include "HTML5names.h"
 #include "MathMLnames.h"
 #include "SVGnames.h"
 #include "XLinknames.h"
 #include "Templatename.h"
+#include "HTML5checker.h"
 
 /* define some pointers to let other parser functions access the local table */
 int               HTML_ENTRIES = (sizeof(XHTMLElemMappingTable) / sizeof(ElemMapping));
 ElemMapping      *pHTMLGIMapping = XHTMLElemMappingTable;
 AttributeMapping *pHTMLAttributeMapping = XHTMLAttributeMappingTable;
+AttrValueMapping *pXhtmlAttrValueMappingTable = XhtmlAttrValueMappingTable;
+
+int               HTML5_ENTRIES = (sizeof(XHTML5ElemMappingTable) / sizeof(ElemMapping));
+ElemMapping      *pHTML5GIMapping = XHTML5ElemMappingTable;
+AttributeMapping *pHTML5AttributeMapping = XHTML5AttributeMappingTable;
+AttrValueMapping *pXhtml5AttrValueMappingTable = Xhtml5AttrValueMappingTable;
 
 XmlEntity        *pXhtmlEntityTable = XhtmlEntityTable;
+XmlEntity        *pXhtml5EntityTable = Xhtml5EntityTable;
 XmlEntity        *pMathEntityTable = MathEntityTable;
 
 #include "fetchXMLname_f.h"
@@ -48,10 +56,18 @@ SSchema GetXHTMLSSchema (Document doc)
 {
   SSchema	XHTMLSSchema;
 
-  XHTMLSSchema = TtaGetSSchema ("HTML", doc);
-  if (XHTMLSSchema == NULL)
-    XHTMLSSchema = TtaNewNature(doc, TtaGetDocumentSSchema(doc), NULL,
-                                "HTML", "HTMLP");
+  if (!strcmp(TtaGetSSchemaName(TtaGetDocumentSSchema(doc)), "HTML5"))
+  {
+	  XHTMLSSchema = TtaGetSSchema ("HTML5", doc);
+	  if (XHTMLSSchema == NULL)
+		  XHTMLSSchema = TtaNewNature(doc, TtaGetDocumentSSchema(doc), NULL, "HTML5", "HTML5P");
+  }
+  else
+  {
+	  XHTMLSSchema = TtaGetSSchema ("HTML", doc);
+	  if (XHTMLSSchema == NULL)
+		  XHTMLSSchema = TtaNewNature(doc, TtaGetDocumentSSchema(doc), NULL, "HTML", "HTMLP");
+  }
   return (XHTMLSSchema);
 }
 
@@ -255,7 +271,10 @@ void MapXMLElementType (int XMLtype, const char *XMLname, ElementType *elType,
   /* Select the right table */
   if (XMLtype == XHTML_TYPE)
     {
-      ptr = XHTMLElemMappingTable;
+      if (profile == L_HTML5 || profile == L_HTML5_LEGACY)
+        ptr = XHTML5ElemMappingTable;
+      else
+        ptr = XHTMLElemMappingTable;
       /* no case sensitive whent there is an explicit "text/html" content_type */
       if (xmlformat && DocumentMeta[doc] && DocumentMeta[doc]->content_type &&
           !strcmp (DocumentMeta[doc]->content_type, "text/html"))
@@ -304,7 +323,7 @@ void MapXMLElementType (int XMLtype, const char *XMLname, ElementType *elType,
       /* search in the ElemMappingTable */
       i = 0;
       /* case insensitive for HTML */
-      if (!xmlformat && ptr == XHTMLElemMappingTable)
+      if (!xmlformat && (ptr == XHTMLElemMappingTable || ptr == XHTML5ElemMappingTable))
         c = tolower (XMLname[0]);
       else
         c = XMLname[0];
@@ -313,11 +332,11 @@ void MapXMLElementType (int XMLtype, const char *XMLname, ElementType *elType,
         i++;     
       /* look at all entries starting with the right character */
       do
-        if (!xmlformat && ptr == XHTMLElemMappingTable &&
+        if (!xmlformat && (ptr == XHTMLElemMappingTable || ptr == XHTML5ElemMappingTable) &&
             strcasecmp (ptr[i].XMLname, XMLname))
           /* it's not the tag */
           i++;
-        else if ((xmlformat || ptr != XHTMLElemMappingTable) &&
+        else if ((xmlformat || (ptr != XHTMLElemMappingTable && ptr != XHTML5ElemMappingTable)) &&
                  strcmp (ptr[i].XMLname, XMLname))
           /* it's not the tag */
           i++;
@@ -368,6 +387,8 @@ const char *GetXMLElementName (ElementType elType, Document doc)
         ptr = SVGElemMappingTable;
       else if (strcmp ("HTML", name) == 0)
         ptr = XHTMLElemMappingTable;
+      else if (strcmp ("HTML5", name) == 0)
+        ptr = XHTML5ElemMappingTable;
 #ifdef TEMPLATES
       else if (strcmp ("Template", name) == 0)
         ptr = TemplateElemMappingTable;
@@ -424,6 +445,8 @@ ThotBool IsXMLElementInline (ElementType elType, Document doc)
         ptr = SVGElemMappingTable;
       else if (strcmp ("HTML", name) == 0)
         ptr = XHTMLElemMappingTable;
+      else if (strcmp ("HTML5", name) == 0)
+        ptr = XHTML5ElemMappingTable;
 #ifdef TEMPLATES
       else if (strcmp ("Template", name) == 0)
         return FALSE;
@@ -508,7 +531,10 @@ int MapXMLAttribute (int XMLtype, const char *attrName, const char *elementName,
   /* Select the right table */
   if (XMLtype == XHTML_TYPE)
     {
-      ptr = XHTMLAttributeMappingTable;
+	  if (!strcmp(TtaGetSSchemaName(TtaGetDocumentSSchema(doc)), "HTML5"))
+		  ptr = XHTML5AttributeMappingTable;
+	  else
+		  ptr = XHTMLAttributeMappingTable;
       /* no case sensitive whent there is an explicit "text/html" content_type */
       if (xmlformat && DocumentMeta[doc] && DocumentMeta[doc]->content_type &&
           !strcmp (DocumentMeta[doc]->content_type, "text/html"))
@@ -536,7 +562,7 @@ int MapXMLAttribute (int XMLtype, const char *attrName, const char *elementName,
     }
 
   /* case insensitive for HTML */
-  if (!xmlformat && ptr == XHTMLAttributeMappingTable)
+  if (!xmlformat && (ptr == XHTMLAttributeMappingTable || ptr == XHTML5AttributeMappingTable))
     c = tolower (attrName[0]);
   else
     c = attrName[0];
@@ -551,12 +577,12 @@ int MapXMLAttribute (int XMLtype, const char *attrName, const char *elementName,
     i++;
   while (ptr[i].XMLattribute[0] == c)
     {
-      if (!xmlformat && ptr == XHTMLAttributeMappingTable &&
+      if (!xmlformat && (ptr == XHTMLAttributeMappingTable || ptr == XHTML5AttributeMappingTable) &&
           (strcasecmp (ptr[i].XMLattribute, attrName) ||
            (ptr[i].XMLelement[0] != EOS && elementName &&
             strcasecmp (ptr[i].XMLelement, elementName))))
         i++;
-      else if ((xmlformat || ptr != XHTMLAttributeMappingTable) &&
+      else if ((xmlformat || !(ptr == XHTMLAttributeMappingTable || ptr == XHTML5AttributeMappingTable)) &&
                (strcmp (ptr[i].XMLattribute, attrName) ||
                 (ptr[i].XMLelement[0] != EOS && elementName &&
                  strcmp (ptr[i].XMLelement, elementName))))
@@ -630,8 +656,10 @@ const char *GetXMLAttributeName (AttributeType attrType, ElementType elType,
       else if (strcmp ("Template",name) == 0)
         ptr = TemplateAttributeMappingTable;
 #endif /* TEMPLATES */
-      else
-        ptr = XHTMLAttributeMappingTable;
+      else if (strcmp ("HTML5",name) == 0)
+        ptr = XHTML5AttributeMappingTable;
+	  else
+		  ptr = XHTMLAttributeMappingTable;
       
       profile = TtaGetDocumentProfile (doc);
       extraprofile = TtaGetDocumentExtraProfile (doc);
@@ -683,6 +711,8 @@ void HasADoctype (Document doc, ThotBool *found, ThotBool *useMath)
   /* Search the doctype declaration according to the main schema */
   s = TtaGetSSchemaName (elType.ElSSchema);
   if (strcmp (s, "HTML") == 0)
+    elType.ElTypeNum = HTML_EL_DOCTYPE;
+  else if (strcmp (s, "HTML5") == 0)
     elType.ElTypeNum = HTML_EL_DOCTYPE;
   else if (strcmp (s, "SVG") == 0)
     elType.ElTypeNum = SVG_EL_DOCTYPE;

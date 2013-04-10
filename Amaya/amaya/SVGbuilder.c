@@ -19,6 +19,7 @@
 #include "content.h"
 #include "css.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "parser.h"
 #include "registry.h"
 #include "style.h"

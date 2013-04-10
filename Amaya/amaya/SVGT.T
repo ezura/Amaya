@@ -25,6 +25,7 @@ RULES
         if immediately within use_
 	   Ignore;
 	Use HTMLTX for HTML;
+        Use HTML5TX for HTML5;
         Use MathMLT for MathML;
         Use XLinkT for XLink;
 	create SOT;

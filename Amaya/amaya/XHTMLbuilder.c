@@ -18,6 +18,7 @@
 #include "css.h"
 #include "parser.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "fetchHTMLname.h"
 
 #include "css_f.h"
@@ -36,6 +37,7 @@
 #include "styleparser_f.h"
 #include "XHTMLbuilder_f.h"
 #include "Xml2thot_f.h"
+#include "HTML5checker.h"
 #ifdef TEMPLATES
 #include "Template.h"
 #endif /* TEMPLATES */
@@ -57,6 +59,7 @@ static int          NoTextChild[] =
 
 /* Define a pointer to let parser functions access the HTML entity table */
 extern XmlEntity *pXhtmlEntityTable;
+extern XmlEntity *pXhtml5EntityTable;
 
 /* maximum size of error messages */
 #define MaxMsgLength 200
@@ -157,7 +160,7 @@ ThotBool XhtmlCannotContainText (ElementType elType)
   int        i;
   ThotBool   ret;
 
-  if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     /* not an HTML element */
     ret = TRUE;
   else

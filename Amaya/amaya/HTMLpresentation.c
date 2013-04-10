@@ -31,6 +31,7 @@
 #include "styleparser_f.h"
 #include "undo.h"
 #include "XHTMLbuilder_f.h"
+#include "HTML5checker.h"
 
 
 /*----------------------------------------------------------------------
@@ -52,7 +53,7 @@ ThotBool MakeASpan (Element elem, Element *span, Document doc, PRule presRule)
   *span = NULL;
   elType = TtaGetElementType (elem);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp(name, "HTML") || !strcmp(name, "SVG"))
+  if (!IsNotHTMLorHTML5(name) || !strcmp(name, "SVG"))
     /* it's an HTML or SVG element */
     if (elType.ElTypeNum == HTML_EL_TEXT_UNIT ||
         elType.ElTypeNum == HTML_EL_Basic_Elem)
@@ -64,7 +65,7 @@ ThotBool MakeASpan (Element elem, Element *span, Document doc, PRule presRule)
             doit = TRUE;
             elType = TtaGetElementType (parent);
             name = TtaGetSSchemaName (elType.ElSSchema);
-            if ((elType.ElTypeNum == HTML_EL_Span && !strcmp(name, "HTML"))
+            if ((elType.ElTypeNum == HTML_EL_Span && !IsNotHTMLorHTML5(name))
 #ifdef _SVG
                 || (elType.ElTypeNum == SVG_EL_tspan && !strcmp (name, "SVG"))
 #endif /* _SVG */
@@ -139,7 +140,7 @@ void DeleteSpanIfNoAttr (Element el, Document doc, Element *firstChild,
   *lastChild = NULL;
   elType = TtaGetElementType (el);
   if (elType.ElTypeNum == HTML_EL_Span &&
-      strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
     {
       span = el;
       attr = NULL;
@@ -188,7 +189,7 @@ void  AttrToSpan (Element elem, Attribute attr, Document doc)
     {
       parent = TtaGetParent (elem);
       elType = TtaGetElementType (parent);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
         /* the parent element is an HTML element */
         /* Create a Span element and move the attribute to this Span element */
         MakeASpan (elem, &span, doc, NULL);
@@ -394,7 +395,7 @@ void SetStyleAttribute (Document doc, Element elem)
     else
 #endif /* _SVG */
       {
-        attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+        attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
         attrType.AttrTypeNum = HTML_ATTR_Style_;
       }
   styleAttr = TtaGetAttribute (elem, attrType);
@@ -501,7 +502,7 @@ ThotBool ChangePRule (NotifyPresentation *event)
   parentType.ElSSchema = NULL;
   parentType.ElTypeNum = 0;
   ret = FALSE;
-  HTMLschema = TtaGetSSchema ("HTML", doc);
+  HTMLschema = GetSSchemaHTMLorHTML5 (doc);
 
   if (event->event != TtePRuleDelete)
     {
@@ -749,7 +750,7 @@ void AttrLangDeleted (NotifyAttribute *event)
   /* if the element is a SPAN without any other attribute, remove the SPAN
      element */
   if (event->info == 0 &&
-      strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
     DeleteSpanIfNoAttr (elem, event->document, &firstChild,&lastChild);
   /* if it's the root (HTML, SVG, MathML) element, delete the RealLang
      attribute */
@@ -757,7 +758,7 @@ void AttrLangDeleted (NotifyAttribute *event)
     /* it's the root element */
     {
       elType = TtaGetElementType (elem);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
         attrType.AttrTypeNum = HTML_ATTR_RealLang;
       else if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "SVG") == 0)
         attrType.AttrTypeNum = SVG_ATTR_RealLang;
@@ -799,7 +800,7 @@ void AttrLangCreated (NotifyAttribute *event)
        attribute to that SPAN element */
     {
       if (event->info == 0 &&
-          strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+          IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) == 0)
         AttrToSpan (elem, event->attribute, event->document);
     }
   /* if it's the root (HTML, SVG, MathML) element, create a RealLang
@@ -807,7 +808,7 @@ void AttrLangCreated (NotifyAttribute *event)
   if (elem == TtaGetRootElement (event->document))
     /* it's the root element */
     {
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
         attrType.AttrTypeNum = HTML_ATTR_RealLang;
       else if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "SVG") == 0)
         attrType.AttrTypeNum = SVG_ATTR_RealLang;
@@ -841,7 +842,7 @@ ThotBool AttrLangModified (NotifyAttribute *event)
     /* it's the root element */
     {
       elType = TtaGetElementType (elem);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
         attrType.AttrTypeNum = HTML_ATTR_RealLang;
       else if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "SVG") == 0)
         attrType.AttrTypeNum = SVG_ATTR_RealLang;
@@ -878,7 +879,7 @@ ThotBool AttrLangShouldBeDeleted (NotifyAttribute *event)
     /* it's the root element */
     {
       elType = TtaGetElementType (elem);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) == 0)
         attrType.AttrTypeNum = HTML_ATTR_RealLang;
       else if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "SVG") == 0)
         attrType.AttrTypeNum = SVG_ATTR_RealLang;

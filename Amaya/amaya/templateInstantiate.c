@@ -30,6 +30,7 @@
 #include "Template.h"
 #include "fetchXMLname_f.h"
 #include "styleparser_f.h"
+#include "HTML5checker.h"
 
 #ifdef TEMPLATES
 #define TEMPLATE_SCHEMA_NAME "Template"
@@ -379,7 +380,7 @@ static void InstantiateAttribute (XTigerTemplate t, Element el, Document doc)
                       TtaSetAttributeText(attr, text, parent, doc);
                       TtaFreeMemory(text);
                     }
-                  else if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+                  else if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) &&
                            // if it's a src arttribute for an image, load the image
                            elType.ElTypeNum == HTML_EL_IMG)
                     if (attrType.AttrTypeNum == HTML_ATTR_SRC &&
@@ -604,7 +605,7 @@ Element ParseTemplate (XTigerTemplate t, Element el, Document doc,
           break;
         }
     }
-  else if (!strcmp (name, "HTML") &&
+  else if (!IsNotHTMLorHTML5 (name) &&
            (elType.ElTypeNum == HTML_EL_Pseudo_paragraph ||
             elType.ElTypeNum == HTML_EL_Paragraph))
     parentLine = el;
@@ -660,7 +661,7 @@ void CreateTemplate (Document doc, char *templatePath)
 
   // Insert xt:head and others
   TtaSetStructureChecking (FALSE, doc);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     {
       // Initialize the xt:head
       elType.ElTypeNum = HTML_EL_HEAD;
@@ -830,7 +831,7 @@ void CreateInstance (char *templatePath, char *instancePath,
   elType = TtaGetElementType (root);
   // get the target document type
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     {
       // Initialize the document title
       elType.ElTypeNum = HTML_EL_TITLE;
@@ -954,15 +955,15 @@ Element InsertWithNotify (Element el, Element child, Element parent, Document do
 
   elType = TtaGetElementType (el);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  isCell = ((!strcmp (name,"HTML") &&
+  isCell = ((!IsNotHTMLorHTML5 (name) &&
              elType.ElTypeNum == HTML_EL_Data_cell ||
              elType.ElTypeNum == HTML_EL_Heading_cell) ||
             (!strcmp (name,"MathML") && elType.ElTypeNum == MathML_EL_MTD));
-  isRow = ((!strcmp (name,"HTML") && elType.ElTypeNum == HTML_EL_Table_row) ||
+  isRow = ((!IsNotHTMLorHTML5 (name) && elType.ElTypeNum == HTML_EL_Table_row) ||
            (!strcmp (name,"MathML") &&
             (elType.ElTypeNum == MathML_EL_MTR ||
              elType.ElTypeNum == MathML_EL_MLABELEDTR)));
-  isImage = (!strcmp (name,"HTML") && 
+  isImage = (!IsNotHTMLorHTML5 (name) && 
               (elType.ElTypeNum == HTML_EL_IMG || elType.ElTypeNum == HTML_EL_Object));
   if (child)
     TtaInsertSibling (el, child, FALSE, doc);
@@ -995,7 +996,7 @@ Element InsertWithNotify (Element el, Element child, Element parent, Document do
       RowPasted (&event);
     }
   
-  if (!strcmp (name,"HTML"))
+  if (!IsNotHTMLorHTML5 (name))
     {
       // special management for images and objets
       elType.ElTypeNum = HTML_EL_IMG;
@@ -1057,7 +1058,7 @@ Element Template_InsertUseChildren (Document doc, Element el, Declaration dec,
 #ifdef TEMPLATE_DEBUG
         DumpSubtree(newEl, doc, 0);
 #endif /* TEMPLATE_DEBUG */
-        sshtml = TtaGetSSchema ("HTML", doc);
+        sshtml = GetSSchemaHTMLorHTML5 (doc);
         t = GetXTigerDocTemplate( doc);
         child = TtaGetFirstChild  (newEl);
         while (child)
@@ -1544,7 +1545,7 @@ void Template_InsertXTigerPI(Document doc, XTigerTemplate t)
 #endif /* ANNOTATIONS */
     elType = TtaGetElementType (root);
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     {
       elType.ElTypeNum = HTML_EL_DOCTYPE;
       pi_type = HTML_EL_XMLPI;
@@ -1625,7 +1626,7 @@ void Template_InsertXTigerPI(Document doc, XTigerTemplate t)
   TtaSetStructureChecking (TRUE, doc);
 
   // update the document title
-  if (!strcmp (s, "HTML"))
+  if (!IsNotHTMLorHTML5 (s))
     {
       elType.ElTypeNum = HTML_EL_TITLE;
       elFound = TtaSearchTypedElement (elType, SearchInTree, root);

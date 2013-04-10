@@ -28,6 +28,8 @@
 #include "appdialogue_wx.h"
 #include "message_wx.h"
 
+#include "HTML5checker.h"
+
 /* structure to register sub-documents in MakeBook function*/
 typedef struct _SubDoc
 {
@@ -909,7 +911,7 @@ void UpdateURLsInSubtree (NotifyElement *event, Element el)
   SSchema             HTMLschema;
 
   nextEl = TtaGetFirstChild (el);
-  HTMLschema = TtaGetSSchema ("HTML", event->document);
+  HTMLschema = GetSSchemaHTMLorHTML5 (event->document);
   if (HTMLschema)
     {
       // first check the id of the enclosing division
@@ -1206,7 +1208,7 @@ static ThotBool GetIncludedDocuments (Element el, Element link,
 
   /* look for anchors with the attribute rel within the element  el */
   attr = NULL;
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   elType.ElSSchema = attrType.AttrSSchema;
   elType.ElTypeNum = HTML_EL_Anchor;
 
@@ -1271,7 +1273,10 @@ static ThotBool GetIncludedDocuments (Element el, Element link,
             /* this link designates an external document */
             {
               /* create a new document and loads the target document */
-              IncludedDocument = TtaNewDocument ("HTML", "tmp");
+			  if (!strcmp(TtaGetSSchemaName(TtaGetRootElement(doc)), "HTML5"))
+				  IncludedDocument = TtaNewDocument ("HTML5", "tmp");
+			  else
+				  IncludedDocument = TtaNewDocument ("HTML", "tmp");
               if (IncludedDocument != 0)
                 {
                   TtaSetStatus (doc, 1, TtaGetMessage (AMAYA, AM_FETCHING), utf8path);
@@ -1508,7 +1513,7 @@ void SectionNumbering (Document doc, View view)
   ThotBool            closeUndo, manyH1, change = FALSE;
 
   /* check if there is any HTML element within the document */
-  HTMLschema = TtaGetSSchema ("HTML", doc);
+  HTMLschema = GetSSchemaHTMLorHTML5 (doc);
   if (HTMLschema == NULL)
     /* no HTML element */
     return;
@@ -1818,7 +1823,7 @@ void MakeToc (Document doc, View view)
 
   elType = TtaGetElementType (el);
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML"))
+  if (IsNotHTMLorHTML5 (s))
     /* not within HTML element */
     {
       /* skip ancestors that are Template elements */
@@ -1832,7 +1837,7 @@ void MakeToc (Document doc, View view)
               s = TtaGetSSchemaName (elType.ElSSchema);
             }
         }
-      if (strcmp (s, "HTML"))
+      if (IsNotHTMLorHTML5 (s))
         return;
     }
   if (!TtaIsSelectionEmpty())

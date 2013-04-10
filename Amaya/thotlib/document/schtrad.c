@@ -298,7 +298,23 @@ ThotBool IsTranslateTag (PtrTSchema pTSch, PtrSSchema pSSch)
           if (LoadedTSchema[i].pTransSchema == pTSch)
             {
               found = TRUE;
-              if (strcmp (LoadedTSchema[i].TransSchemaName, "HTMLTT"))
+			  if (strcmp (LoadedTSchema[i].TransSchemaName, "HTMLTT"))
+                translate = TRUE;
+            }
+          if (!found)
+            i++;
+        }
+      while (!found && i < MAX_TSCHEMAS);
+    }
+  else if ((pSSch->SsName != NULL) &&
+      (strcmp (pSSch->SsName, "HTML5") == 0))
+    {
+      do
+        {
+          if (LoadedTSchema[i].pTransSchema == pTSch)
+            {
+              found = TRUE;
+              if (strcmp (LoadedTSchema[i].TransSchemaName, "HTML5TT"))
                 translate = TRUE;
             }
           if (!found)

@@ -61,6 +61,7 @@ typedef struct _CSSInfo
 
 THOT_EXPORT CSSInfoPtr   CSSList;
 THOT_EXPORT char        *UserCSS; /* name of the User style sheet */
+THOT_EXPORT char        *UserCSSForStr; /* name of the User style sheet for visualization of the structure */
 THOT_EXPORT ThotBool     DoDialog; /* TRUE when CSS rules are parsed to update the CSS dialog */
 
 #endif /* CSS_INC_H */

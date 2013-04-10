@@ -46,6 +46,7 @@ static int        RefFormImage = 0;
 #include "message_wx.h"
 #include "SVGbuilder_f.h"
 #include "SVGedit_f.h"
+#include "HTML5checker.h"
 
 // Management of saved resources
 typedef struct _UndoSaveAs
@@ -150,7 +151,6 @@ void InitImage (void)
   strcpy (DirectoryImage, DirectoryName);
 }
 
- 
 /*----------------------------------------------------------------------
   CreateAreaMap
   create an area in a map. shape indicates the shape of the area to be
@@ -193,7 +193,7 @@ static void CreateAreaMap (Document doc, View view, const char *shape)
   div = NULL;
   elType = TtaGetElementType (el);
   attrType.AttrSSchema = elType.ElSSchema;
-  if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     /* not within an HTML element. Nothing to do */
     return;
   if (elType.ElTypeNum == HTML_EL_PICTURE_UNIT)
@@ -201,7 +201,7 @@ static void CreateAreaMap (Document doc, View view, const char *shape)
       // look for the enclosing IMG
       parent = TtaGetParent (el);
       parentType = TtaGetElementType (parent);
-      if (strcmp(TtaGetSSchemaName (parentType.ElSSchema), "HTML") ||
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (parentType.ElSSchema)) ||
           parentType.ElTypeNum != HTML_EL_IMG)
         return;
       el = parent;
@@ -843,7 +843,7 @@ void UpdateSRCattribute (NotifyOnTarget *event)
   doc = event->document;
   elType = TtaGetElementType (el);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
     {
       isInput = (elType.ElTypeNum == HTML_EL_Image_Input);
       isObject = (elType.ElTypeNum == HTML_EL_Object);
@@ -857,7 +857,7 @@ void UpdateSRCattribute (NotifyOnTarget *event)
   attrType.AttrSSchema = elType.ElSSchema;
   /* if it's not an HTML picture (it could be an SVG image for instance),
      ignore */
-  if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     return;
   if (elType.ElTypeNum == HTML_EL_PICTURE_UNIT)
     {
@@ -1305,7 +1305,7 @@ void  CreateObject (Document doc, View view)
       UserMimeType[0] = EOS;
       ImgDocument = doc;
       CreateNewImage = TRUE;
-      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
       elType.ElTypeNum = HTML_EL_Object;
       TtaInsertElement (elType, doc);
       /* Check the Thot abstract tree against the structure schema. */
@@ -1344,7 +1344,7 @@ void AddNewImage (Document doc, View view, ThotBool isInput, ThotBool isSvg)
       /* Get the type of the first selected element */
       elType = TtaGetElementType (firstSelEl);
       name = TtaGetSSchemaName (elType.ElSSchema);
-      if (!strcmp (name, "HTML") &&
+      if (!IsNotHTMLorHTML5 (name) &&
           ((!isInput && elType.ElTypeNum == HTML_EL_IMG) ||
            (isInput && elType.ElTypeNum == HTML_EL_Image_Input)) &&
           c1 == 0 && i == 0 && lastSelEl == firstSelEl)
@@ -1477,7 +1477,7 @@ void AddNewImage (Document doc, View view, ThotBool isInput, ThotBool isSvg)
                 }
 #endif /* _SVG */
             }
-          else if (!strcmp (name, "HTML"))
+          else if (!IsNotHTMLorHTML5 (name))
             {
               /* if the selected element is empty and is not supposed to
                  contain text directly, create a pseudo paragraph as a child

@@ -12,6 +12,7 @@
  *
  */
 
+
 /* DEBUG_AMAYA_SAVE Print out debug information when saving */
 
 #include "wx/wx.h"
@@ -56,6 +57,7 @@
 #include "UIcss_f.h"
 #include "styleparser_f.h"
 #include "HTMLform_f.h"
+#include "HTML5checker.h"
 
 #ifdef TEMPLATES
 #include "Template.h"
@@ -242,7 +244,7 @@ ThotBool CheckValidEntity (NotifyAttribute *event)
 
   attrType = event->attributeType;
   s = TtaGetSSchemaName (attrType.AttrSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (IsNotHTMLorHTML5 (s) == 0)
     attrType.AttrTypeNum = HTML_ATTR_EntityName;
   else if (strcmp (s, "MathML") == 0)
     attrType.AttrTypeNum = MathML_ATTR_EntityName;
@@ -555,7 +557,7 @@ void SetRelativeURLs (Document doc, char *newpath, char *resbase,
 #ifdef AMAYA_DEBUG
   fprintf(stderr, "SetRelativeURLs\n");
 #endif
-  XHTMLSSchema = TtaGetSSchema ("HTML", doc);
+  XHTMLSSchema = GetSSchemaHTMLorHTML5 (doc);
   MathSSchema = TtaGetSSchema ("MathML", doc);
   SVGSSchema = TtaGetSSchema ("SVG", doc);
   XLinkSSchema = TtaGetSSchema ("XLink", doc);
@@ -1235,7 +1237,7 @@ void SetNamespacesAndDTD (Document doc, ThotBool removeTemplate)
                   useSVG = TRUE;
                 else if (!strcmp (ptr, "XML"))
                   useXML = TRUE;
-                else if (!strcmp (ptr, "HTML"))
+                else if (!IsNotHTMLorHTML5 (ptr))
                   useHTML = TRUE;
                 else if (!strcmp (ptr, "XLink"))
                   useXLink = TRUE;
@@ -1256,7 +1258,7 @@ void SetNamespacesAndDTD (Document doc, ThotBool removeTemplate)
 #ifdef ANNOTATIONS
   if (DocumentTypes[doc]  == docAnnot)
     {
-      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
       pi_type = HTML_EL_XMLPI;
     }
   else
@@ -1264,7 +1266,7 @@ void SetNamespacesAndDTD (Document doc, ThotBool removeTemplate)
     elType = TtaGetElementType (docEl);
   s = TtaGetSSchemaName (elType.ElSSchema);
   attrType.AttrSSchema = elType.ElSSchema;
-  if (strcmp (s, "HTML") == 0)
+  if (IsNotHTMLorHTML5 (s) == 0)
     {
       elType.ElTypeNum = HTML_EL_DOCTYPE;
       pi_type = HTML_EL_XMLPI;
@@ -1456,7 +1458,7 @@ void SetNamespacesAndDTD (Document doc, ThotBool removeTemplate)
 #endif /* ANNOTATIONS */
       DocumentTypes[doc] == docHTML)
     {
-      attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+      attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
       if (attrType.AttrSSchema)
         {
           el = TtaGetFirstChild (root);
@@ -1655,9 +1657,17 @@ ThotBool ParseWithNewDoctype (Document doc, char *localFile, char *tempdir,
       /* Copy the current document into a second temporary file */
       sprintf (tempdoc2, "%s%c%d%c%s",
                TempFileDirectory, DIR_SEP, ext_doc, DIR_SEP, documentname);
-      if (!DocumentMeta[doc]->xmlformat && xml_doctype)
-        //convert HTML into XHTML
-        TtaExportDocumentWithNewLineNumbers (doc, tempdoc2, "HTMLTX", FALSE);
+	  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+	  {
+		  if (!DocumentMeta[doc]->xmlformat && xml_doctype)
+			//convert HTML into XHTML
+			TtaExportDocumentWithNewLineNumbers (doc, tempdoc2, "HTML5TX", FALSE);
+	  }
+	  else if (!DocumentMeta[doc]->xmlformat && xml_doctype)
+	  {
+			//convert HTML into XHTML
+			TtaExportDocumentWithNewLineNumbers (doc, tempdoc2, "HTMLTX", FALSE);
+	  }
       else
         TtaFileCopy (localFile, tempdoc2);
     }
@@ -1738,7 +1748,13 @@ ThotBool ParseWithNewDoctype (Document doc, char *localFile, char *tempdir,
         TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "SVGT", FALSE);
       else if (DocumentTypes[doc] == docMath)
         TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "MathMLT", FALSE);
-      else if (new_doctype == L_Xhtml11 || new_doctype == L_Basic)
+      else if (new_doctype == L_HTML5 || new_doctype == L_HTML5_LEGACY)
+	  {
+		  if (xml_doctype)
+            TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "HTML5TX", FALSE);
+          else TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "HTML5T", FALSE);
+	  }
+	  else if (new_doctype == L_Xhtml11 || new_doctype == L_Basic)
         TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "HTMLT11", FALSE);
       else if (xml_doctype)
         TtaExportDocumentWithNewLineNumbers (ext_doc, localFile, "HTMLTX", FALSE);
@@ -1945,8 +1961,13 @@ static ThotBool SaveDocumentLocally (Document doc, char *directoryName,
     {
       /* the document will be exported without line numbers */
       SetInternalLinks (doc);
-      if (DocumentTypes[doc] == docHTML)
-        ok = TtaExportDocument (doc, tempname, "HTMLTT");
+	  if (DocumentTypes[doc] == docHTML)
+	  {
+		  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			  ok = TtaExportDocument (doc, tempname, "HTML5TT");
+		  else
+			  ok = TtaExportDocument (doc, tempname, "HTMLTT");
+	  }
       else if (DocumentTypes[doc] == docSVG)
         ok = TtaExportDocument (doc, tempname, "SVGT");
       if (DocumentTypes[doc] == docMath)
@@ -1961,13 +1982,17 @@ static ThotBool SaveDocumentLocally (Document doc, char *directoryName,
         {
           if (SaveAsXML)
             {
-              if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
+			  if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
                 ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT11", RemoveTemplate);
+			  else if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+				ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5TX", RemoveTemplate);
               else
                 ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLTX", RemoveTemplate);
             }
-          else
-            ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", RemoveTemplate);
+		  else if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+				ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5T", RemoveTemplate);
+		  else
+		      ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", RemoveTemplate);
         }
       else if (DocumentTypes[doc] == docSVG)
         ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "SVGT", RemoveTemplate);
@@ -2019,9 +2044,14 @@ static ThotBool SaveDocumentLocally (Document doc, char *directoryName,
           SetWindowTitle (doc, doc, 0);
           /* save a local copy of the current document */
           ptr = GetLocalPath (doc, tempname);
-          if (DocumentTypes[doc] == docImage)
             /* export the new container (but to the temporary file name */
-            ok = TtaExportDocumentWithNewLineNumbers (doc, ptr, "HTMLTX", FALSE);
+		  if (DocumentTypes[doc] == docImage)
+		  {
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+				  ok = TtaExportDocumentWithNewLineNumbers (doc, ptr, "HTML5TX", FALSE);
+			  else
+				  ok = TtaExportDocumentWithNewLineNumbers (doc, ptr, "HTMLTX", FALSE);
+		  }
           else
             ok = TtaFileCopy (tempname, ptr);
           TtaFreeMemory (ptr);
@@ -2568,15 +2598,20 @@ static ThotBool SaveDocumentThroughNet (Document doc, View view, char *url,
   if (DocumentTypes[doc] == docHTML)
     if (SaveAsXML)
       {
-        if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
+		if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
           TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT11", RemoveTemplate);
+		else if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+		  TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5TX", RemoveTemplate);
         else
           TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLTX", RemoveTemplate);
         DocumentMeta[doc]->xmlformat = TRUE;
       }
     else
       {
-        TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", RemoveTemplate);
+		if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5T", RemoveTemplate);
+		else
+			TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", RemoveTemplate);
         DocumentMeta[doc]->xmlformat = FALSE;
       }
   else if (DocumentTypes[doc] == docSVG)
@@ -2594,7 +2629,10 @@ static ThotBool SaveDocumentThroughNet (Document doc, View view, char *url,
   else if (DocumentTypes[doc] == docImage)
     {
       /* export the new container using the image file name */
-      TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLTX", FALSE);
+	  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+		  TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5TX", FALSE);
+	  else
+		  TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLTX", FALSE);
       TtaFreeMemory (tempname);
       pImage = SearchLoadedImageByURL (doc, url);
       tempname = TtaStrdup (pImage->localName);
@@ -2881,12 +2919,22 @@ void DoSynchronize (Document doc, View view, NotifyElement *event)
           SetNamespacesAndDTD (doc, FALSE);
           if (DocumentTypes[doc] == docLibrary || DocumentTypes[doc] == docHTML)
             {
-              if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
-                TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLT11", FALSE);
-              else if (DocumentMeta[doc]->xmlformat)
-                TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLTX", FALSE);
-              else
-                TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLT", FALSE);
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			  {
+				  if (DocumentMeta[doc]->xmlformat)
+					TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTML5TX", FALSE);
+				  else
+					TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTML5T", FALSE);
+			  }
+			  else
+			  {
+				  if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
+					TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLT11", FALSE);
+				  else if (DocumentMeta[doc]->xmlformat)
+					TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLTX", FALSE);
+				  else
+					TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLT", FALSE);
+			  }
             }
           else if (DocumentTypes[doc] == docSVG)
             TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "SVGT", FALSE);
@@ -3526,17 +3574,25 @@ static ThotBool AutoSaveDocument (Document doc, View view, char *local_url)
         {
           if (SaveAsXML)
             {
-              if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
-                ok = TtaExportDocumentWithNewLineNumbers (doc, tempname,
-                                                          "HTMLT11", FALSE);
-              else
-                ok = TtaExportDocumentWithNewLineNumbers (doc, tempname,
-                                                          "HTMLTX", FALSE);
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+				ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5TX", FALSE);
+			  else
+			  {
+				  if (TtaGetDocumentProfile(doc) == L_Xhtml11 || TtaGetDocumentProfile(doc) == L_Basic)
+					ok = TtaExportDocumentWithNewLineNumbers (doc, tempname,
+															  "HTMLT11", FALSE);
+				  else
+					ok = TtaExportDocumentWithNewLineNumbers (doc, tempname,
+															  "HTMLTX", FALSE);
+			  }
               DocumentMeta[doc]->xmlformat = TRUE;
             }
           else
             {
-              ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", FALSE);
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			    ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTML5T", FALSE);
+			  else
+				ok = TtaExportDocumentWithNewLineNumbers (doc, tempname, "HTMLT", FALSE);
               DocumentMeta[doc]->xmlformat = FALSE;
             }
         }
@@ -3706,7 +3762,7 @@ static ThotBool UpdateDocImage (Document doc, ThotBool src_is_local,
     return FALSE;
 
   /* change the value of the src attribute */
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_SRC;
   attr = TtaGetAttribute (el, attrType);
   TtaRegisterAttributeReplace (attr, el, doc);
@@ -3858,7 +3914,7 @@ static void CheckCopiedObjects (Document doc, ThotBool src_is_local,
        * ------------------------|---------------|------------------
        */
 
-      XHTMLSSchema = TtaGetSSchema ("HTML", doc);
+      XHTMLSSchema = GetSSchemaHTMLorHTML5 (doc);
       MathSSchema = TtaGetSSchema ("MathML", doc);
       SVGSSchema = TtaGetSSchema ("SVG", doc);
       XLinkSSchema = TtaGetSSchema ("XLink", doc);
@@ -4240,7 +4296,7 @@ static void UpdateCss (Document doc, ThotBool src_is_local,
                       attrType.AttrTypeNum = 0;
                       attr = NULL;
                           // it could be a PI_line
-                      if (!strcmp (s, "HTML") && elType.ElTypeNum == HTML_EL_LINK)
+                      if (!IsNotHTMLorHTML5 (s) && elType.ElTypeNum == HTML_EL_LINK)
                         attrType.AttrTypeNum = HTML_ATTR_HREF_;
                       /* save the new attr value */
                       if (resbase[0] != EOS)
@@ -4426,7 +4482,7 @@ void DoSaveAs (char *user_charset, char *user_mimetype, ThotBool fullCopy)
       /* search if there is a BASE element within the document */
       root = TtaGetMainRoot (doc);
       elType.ElSSchema = TtaGetDocumentSSchema (doc);
-      if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         {
           attrType.AttrSSchema = elType.ElSSchema;
           /* search the BASE element */
@@ -4725,7 +4781,7 @@ void DoSaveAs (char *user_charset, char *user_mimetype, ThotBool fullCopy)
               root = TtaGetMainRoot (xmlDoc);
               elType = TtaGetElementType (root);
               doc_url = NULL;
-              if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+              if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                 {
                   elType.ElTypeNum = HTML_EL_Document_URL;
                   doc_url = TtaSearchTypedElement (elType, SearchInTree, root);

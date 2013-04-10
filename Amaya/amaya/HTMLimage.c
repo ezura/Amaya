@@ -30,6 +30,7 @@
 #include "HTMLedit_f.h"
 #include "html2thot_f.h"
 #include "Xml2thot_f.h"
+#include "HTML5checker.h"
 
 
 /*----------------------------------------------------------------------
@@ -265,7 +266,7 @@ void SetAreaCoords (Document document, Element element, int attrNum, Element ima
 
   /* Is it an AREA element */
   elType = TtaGetElementType (element);
-  if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+  if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) &&
       elType.ElTypeNum != HTML_EL_AREA)
     return;
   /* get size of the map */
@@ -458,7 +459,7 @@ void UpdateImageMap (Element image, Document doc, int oldWidth, int oldHeight)
     {
       elType = TtaGetElementType (parent);
       if (elType.ElTypeNum == HTML_EL_IMG &&
-          !strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+          !IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         image = parent;
     }
   
@@ -669,7 +670,7 @@ void DisplayImage (Document doc, Element el, LoadedImageDesc *desc,
   char               *tempfile;
   char               *originalName;
   ThotBool            modified;
-  ThotBool            is_svg, is_mml, is_html, htmlok;
+  ThotBool            is_svg, is_mml, is_html, is_html5, htmlok;
   ThotBool            xmlDec, withDoctype, isXML, useMath, isKnown;
 
   picType = TtaGetPictureType (el);
@@ -693,17 +694,18 @@ void DisplayImage (Document doc, Element el, LoadedImageDesc *desc,
   is_svg = FALSE;
   is_mml = FALSE;
   is_html = FALSE;
+  is_html5 = FALSE;
   if (elType.ElTypeNum == HTML_EL_PICTURE_UNIT ||
       ((elType.ElTypeNum == HTML_EL_Object ||
         elType.ElTypeNum == HTML_EL_IFRAME ||
         elType.ElTypeNum == HTML_EL_Embed_) &&
-       (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)))
+       (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))))
     {
       /* Determine the type of the external element */
       htmlok = TRUE;
       if (picType == unknown_type)
         {
-          if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+          if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) &&
               (elType.ElTypeNum == HTML_EL_PICTURE_UNIT))
             {
               parent = TtaGetParent (el);
@@ -739,7 +741,15 @@ void DisplayImage (Document doc, Element el, LoadedImageDesc *desc,
               else if (imageName[i] == '.' && !strcmp (&imageName[i+1], "mml"))
                 is_mml = TRUE;
               else if (imageName[i] == '.' && !strncmp (&imageName[i+1], "htm", 3))
-                is_html = TRUE;
+				{
+				  /* check document to distinguish HTML4 (XHTML 1.1) and HTML5 */
+				  CheckDocHeader (tempfile, &xmlDec, &withDoctype, &isXML, &useMath, &isKnown, 
+				  &parsingLevel, &charset, charsetname, &thotType, &extraProfile);
+				  if (parsingLevel == L_HTML5 || parsingLevel == L_HTML5_LEGACY)
+                    is_html5 = TRUE;
+				  else
+					is_html = TRUE;
+				}
               else /* try sniffing */
                 {
                   CheckDocHeader (tempfile, &xmlDec, &withDoctype, &isXML, &useMath, &isKnown, 
@@ -749,7 +759,12 @@ void DisplayImage (Document doc, Element el, LoadedImageDesc *desc,
                   if (isXML && thotType == docMath)
                     is_mml = TRUE;
                   if (isXML && thotType == docHTML)
-                    is_html = TRUE;
+					{
+						if (parsingLevel == L_HTML5 || parsingLevel == L_HTML5_LEGACY)
+							is_html5 = TRUE;
+						else
+							is_html = TRUE;
+					}
                 }
             }
         }
@@ -814,6 +829,17 @@ void DisplayImage (Document doc, Element el, LoadedImageDesc *desc,
              position of the image element */
           ParseExternalDocument (tempfile, originalName, el, FALSE, doc, 
                                  TtaGetDefaultLanguage(), "HTML");
+        }
+	  else if (is_html5 && htmlok)
+        {
+          TtaSetPictureType (el, AM_XHTML_MIME_TYPE);
+          if (desc)
+            desc->imageType = html_type;
+      	  
+          /* parse the HTML file and include the parsed tree at the
+             position of the image element */
+          ParseExternalDocument (tempfile, originalName, el, FALSE, doc, 
+                                 TtaGetDefaultLanguage(), "HTML5");
         }
       else
         {
@@ -1018,7 +1044,7 @@ static void HandleImageLoaded (int doc, int status, char *urlName, char *outputf
             {
               elType = TtaGetElementType (ctxEl->currentElement);
               name = TtaGetSSchemaName (elType.ElSSchema);
-              if ((strcmp (name, "HTML") == 0 &&
+              if ((!IsNotHTMLorHTML5 (name) &&
                    desc->status == RESOURCE_LOADED &&
                    (elType.ElTypeNum == HTML_EL_PICTURE_UNIT ||
                     elType.ElTypeNum == HTML_EL_Embed_ ||
@@ -1563,7 +1589,7 @@ ThotBool FetchAndDisplayImages (Document doc, int flags, Element elSubTree)
   /* We are currently fetching images for this document */
   /* during this time LoadImage has not to stop transfer */
   /* prepare the attribute to be searched */
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   if (attrType.AttrSSchema)
     /* there are some HTML elements in this documents. 
        Get all 'img' or 'object' or 'embed' elements */
@@ -1628,7 +1654,7 @@ ThotBool FetchAndDisplayImages (Document doc, int flags, Element elSubTree)
      {
        elType = TtaGetElementType (parent);
        if (elType.ElTypeNum == HTML_EL_Object &&
-           !strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+           !IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
          {
            TtaSelectElement (event->document, parent);
            return TRUE;  /* don't do anything else */
@@ -1654,7 +1680,7 @@ ThotBool FetchAndDisplayImages (Document doc, int flags, Element elSubTree)
      {
        elType = TtaGetElementType (parent);
        if (elType.ElTypeNum == HTML_EL_Object &&
-           !strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+           !IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
          {
            TtaGiveFirstSelectedElement (event->document, &el, &firstchar, &lastchar);
            /* accept to delete the picture when the object itself is deleted */

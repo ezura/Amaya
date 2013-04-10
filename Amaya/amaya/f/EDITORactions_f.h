@@ -231,6 +231,8 @@ extern void CreateReset ( Document doc,
                           View view );
 extern void CreateDivision ( Document doc,
                              View view );
+extern void CreateSection ( Document doc,
+                             View view );
 extern void CreateNOSCRIPT ( Document doc,
                              View view );
 extern void CreateIFrame ( Document doc,

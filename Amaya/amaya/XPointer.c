@@ -33,6 +33,7 @@
 #include "XLink.h"
 #include "XML.h"
 #include "init_f.h"
+#include "HTML5checker.h"
 #ifdef ANNOTATIONS
 #include "Annot.h"
 #endif /* ANNOTATIONS */
@@ -345,7 +346,7 @@ static char * GetIdValue (Element el)
   else if (!strcmp (schema_name, "SVG"))
     attrType.AttrTypeNum = SVG_ATTR_id;
 #endif /* _SVG */
-  else if (!strcmp (schema_name, "HTML") || !strcmp (schema_name, "XHTML"))
+  else if (!IsNotHTMLorHTML5 (schema_name) || !strcmp (schema_name, "XHTML"))
     attrType.AttrTypeNum = HTML_ATTR_ID;
   else /* assume it is generic XML */
 #ifdef XML_GENERIC
@@ -1037,7 +1038,7 @@ char * XPointer_build (Document doc, View view, ThotBool useDocRoot)
   /* @@ JK: should be a function in AHTURLTools */
 
   schemaName = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp(schemaName, "HTML")
+  if (IsNotHTMLorHTML5(schemaName)
       && strcmp(schemaName, "XHTML")
       && strcmp(schemaName, "XML")
       && strcmp(schemaName, "MathML")

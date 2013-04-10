@@ -95,6 +95,13 @@ AttrValueMapping;
 /* information about an entity being read maximum size entity */
 #define MaxEntityLength 80
 
+typedef struct _XmlEntity
+{
+  const char   *charName;      /* entity name */
+  int           charCode;      /* decimal code of ISO-Latin1 char */
+}
+XmlEntity;
+
 typedef struct _ParserData
 {	     /* global variables used by XML and HTML parsers */
   Document   doc;                   /* the Thot document */
@@ -108,15 +115,12 @@ typedef struct _ParserData
   ThotBool   parsingTextArea;       /* reading the content of a textarea element */
   ThotBool   parsingScript;         /* reading the content of a script element */
   ThotBool   readingAnAttrValue;
+  ElemMapping *elemMappingTable;	/* corresponding element mapping table */
+  AttributeMapping *attributeMappingTable;/* corresponding attribute mapping table */
+  AttrValueMapping *attrValueMappingTable;/* corresponding sttribute value mapping table */
+  XmlEntity *xhtmlEntityTable;		/* corresponding Xhtml entities table */
 }
 ParserData;
-
-typedef struct _XmlEntity
-{
-  const char   *charName;      /* entity name */
-  int           charCode;      /* decimal code of ISO-Latin1 char */
-}
-XmlEntity;
 
 /* Error types for the XML parser*/
 typedef enum

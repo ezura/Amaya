@@ -782,6 +782,8 @@ void Prof_InitTable (char *profile)
                 FunctionMask[i] = (FunctionMask[i] | L_StrictValue);
               else if (strstr (DoctypeTable->ProEntries[j].ProName, "Basic"))
                 FunctionMask[i] = (FunctionMask[i] | L_BasicValue);
+			  else if (strstr (DoctypeTable->ProEntries[j].ProName, "HTML5"))
+                FunctionMask[i] = (FunctionMask[i] | L_HTML5Value);
               else if (strstr (DoctypeTable->ProEntries[j].ProName, "1.1"))
                 FunctionMask[i] = (FunctionMask[i] | L_StrictValue | L_RubyValue);
               else if (strstr (DoctypeTable->ProEntries[j].ProName, "Ruby"))

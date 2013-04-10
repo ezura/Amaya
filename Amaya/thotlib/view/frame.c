@@ -772,6 +772,10 @@ void DrawFilledBox (PtrBox pBox, PtrAbstractBox pFrom, int frame, PtrFlow pFlow,
       yd = y;
     }
   /* clipping on the width */
+
+
+
+
   if (xd + width > xmax)
     width = xmax - xd + 1;
   /* clipping on the height */
@@ -853,7 +857,7 @@ void DrawFilledBox (PtrBox pBox, PtrAbstractBox pFrom, int frame, PtrFlow pFlow,
       else if (!selected && pFrom->AbElement &&
                pFrom->AbElement->ElStructSchema &&
                (from->BxType != BoTable ||
-                strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML")))
+                (strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML") && strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML5"))))
         {
           /* don't fill the background when an enclosing box is selected */
           if (!setWindow && pFrom->AbFillBox && pFrom->AbFillPattern)
@@ -885,7 +889,7 @@ void DrawFilledBox (PtrBox pBox, PtrAbstractBox pFrom, int frame, PtrFlow pFlow,
           pFrom->AbElement &&
           pFrom->AbElement->ElStructSchema &&
           (from->BxType != BoTable ||
-           strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML")))
+           (strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML") && strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML5"))))
         {
           DisplayBorders (pBox, pFrom, frame, xd - x, yd - y, width, height,
                           t, b, l, r, bt, bb, bl, br);

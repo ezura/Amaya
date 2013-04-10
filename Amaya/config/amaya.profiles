@@ -51,6 +51,7 @@ ShowLinks
 ShowTargets
 SplitHorizontally
 SplitVertically
++sections
 
 ################# AMAYA Lite
 <Editor_Lite>
@@ -234,6 +235,51 @@ HelpAtW3C
 +ruby
 +css-style
 +doctype
+
+################# HTML5
+{HTML5}
++bdi-text-module
++clientside-module
++attr-style
++forms
++hypertext-module
++image-module
++link-module
++list-module
++edit-module
++iframe-module
++makebook
++meta-module
++presentation-lite
+&SetOnOffBold
+&SetOnOffItalic
+&SetOnOffSmall
++maths
++tables
+&CreateBase
+&CreateMath
++sections
++object-module
++script-module
++struct-module
++svg
++tables
++text-module-lite
+&CreateAddress
+&CreateBlockQuote
+&CreateDivision
+&SetOnOffAbbr
+&SetOnOffCite
+&SetOnOffDefinition
+&SetOnOffKeyboard
+&SetOnOffQuotation
+&SetOnOffSample
+&SetOnOffVariable
+&CreateDate
+&CreateSpan
++css-style
++doctype
++ruby
 
 ################# MathML
 {MathML}
@@ -633,6 +679,17 @@ SelectColumn
 &CreateTFoot
 &ChangeToDataCell
 &ChangeToHeadingCell
+
+################# HTML5 module
+[sections]
+&CreateArticle
+&CreateSection
+&CreateHeader
+&CreateFooter
+&CreateNav
+&CreateHgroup
+&CreateAside
+&ShowSections
 
 ################# MATHML
 [maths]

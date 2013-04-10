@@ -66,6 +66,7 @@ static const char       *DisplayCategory[]={
 #include "paneltypes_wx.h"
 #include "SVGbuilder_f.h"
 #include "SVGedit_f.h"
+#include "HTML5checker.h"
 #ifdef TEMPLATES
 #include "templateUtils_f.h"
 #endif /* TEMPLATES */
@@ -177,15 +178,34 @@ ThotBool LoadRemoteStyleSheet (char *url, Document doc, Element el,
   ----------------------------------------------------------------------*/
 void InitUserStyleSheet (char *url)
 {
-  FILE             *f;
+  FILE             *inF, *outF;
+  char c;
 
   if (!TtaFileExist (url))
     {
-      f = TtaWriteOpen (url);
-      if (f)
+      inF = TtaWriteOpen (url);
+      if (inF)
         {
-          fprintf (f, "/* This is the default Amaya CSS file */\n");
-          TtaWriteClose (f);
+          if(strstr(url, "amaya.css"))
+            fprintf (inF, "/* This is the default Amaya CSS file */\n");
+          else if (strstr(url, "structure.css")) {
+            fprintf (inF, "/* This is the default Structure CSS file */\n");
+            outF = fopen( "amaya_structure.css", "rb" );
+			if( outF != NULL ){
+				while( 1 ){
+					fread( &c, sizeof(c), 1, outF );
+					if( feof( outF ) ){
+						break;
+					}
+					if( ferror( outF ) ){
+						exit( EXIT_FAILURE );
+					}
+					fwrite( &c, sizeof(c), 1, inF );
+				}
+				fclose(outF);
+			}
+          }
+          TtaWriteClose (inF);
         }
     }
 }
@@ -219,6 +239,102 @@ void LoadUserStyleSheet (Document doc)
           TtaFileCopy (UserCSS, ptr);
           /* allocate a new Presentation structure */ 
           css = AddCSS (0, doc, CSS_USER_STYLE, CSS_ALL, UserCSS, ptr, NULL);
+          TtaFreeMemory (ptr);
+          doit = TRUE;
+        }
+      else if (pInfo == NULL)
+        /* not already applied */
+        {
+          AddInfoCSS (doc, css, CSS_USER_STYLE, CSS_ALL, NULL);
+          doit = TRUE;
+        }
+      else if (pInfo->PiSchemas == NULL)
+        doit = TRUE;
+      else
+        doit = FALSE;
+
+      if (doit)
+        {
+          ptr = css->localName;
+          if (ptr[0] != EOS  && TtaFileExist (ptr))
+            {
+              /* read User preferences */
+              res = TtaReadOpen (ptr);
+              if (res != NULL)
+                {
+#ifdef _WINGUI
+                  if (fstat (_fileno (res), &buf))
+#else  /* !_WINGUI */
+                    if (fstat (fileno (res), &buf))
+#endif /* !_WINGUI */
+                      TtaReadClose (res);
+                    else
+                      {
+                        buffer = (char *)TtaGetMemory (buf.st_size + 1000);
+                        if (buffer == NULL)
+                          TtaReadClose (res);
+                        else
+                          {
+                            len = fread (buffer, buf.st_size, 1, res);
+                            if (len != 1)
+                              {
+                                TtaFreeMemory (buffer);
+                                buffer = NULL;
+                                TtaReadClose (res);
+                              }
+                            else
+                              {
+                                buffer[buf.st_size] = 0;
+                                TtaReadClose (res);
+                              }
+                          }
+                      }
+                }
+
+              /* parse the whole thing and free the buffer */
+              if (buffer != NULL)
+                {
+                  ReadCSSRules (doc, css, buffer, css->url, 0, FALSE, NULL);
+                  TtaFreeMemory (buffer);
+                }
+            }
+        }
+    }
+#ifdef _WX
+  /* Update the list of classes */
+  TtaExecuteMenuAction ("ApplyClass", doc, 1, FALSE);
+#endif /* _WX */
+}
+
+/*----------------------------------------------------------------------
+  LoadUserStyleSheetForStructure: Load the user Style Sheet found in his/her   
+  home directory or the default one in THOTDIR.           
+  ----------------------------------------------------------------------*/
+void LoadUserStyleSheetForStructure (Document doc)
+{
+  CSSInfoPtr          css;
+  PInfoPtr            pInfo;
+  struct stat         buf;
+  FILE               *res;
+  char               *buffer, *ptr;
+  int                 len;
+  ThotBool            loadcss, doit;
+
+  /* check if we have to load CSS */
+  TtaGetEnvBoolean ("LOAD_CSS", &loadcss);
+  if (loadcss && UserCSSForStr && TtaFileExist (UserCSSForStr))
+    {
+      // there is a User stylesheet
+      buffer = NULL;
+      ptr = UserCSSForStr;
+      css = SearchCSS (doc, ptr, NULL, &pInfo);
+      if (css == NULL)
+        {
+          /* store a copy of the local CSS in .amaya/0 */
+          ptr = GetLocalPath (0, UserCSSForStr);
+          TtaFileCopy (UserCSSForStr, ptr);
+          /* allocate a new Presentation structure */ 
+          css = AddCSS (0, doc, CSS_USER_STYLE, CSS_ALL, UserCSSForStr, ptr, NULL);
           TtaFreeMemory (ptr);
           doit = TRUE;
         }
@@ -494,6 +610,8 @@ void UpdateStyleSheet (char *url, char *tempdoc)
                                 EnableStyleElement (doc, refInfo->PiLink);
                               else if (UserCSS && !strcmp (refcss->url, UserCSS))
                                 LoadUserStyleSheet (doc);
+							  else if (UserCSSForStr && !strcmp (refcss->url, UserCSSForStr))
+                                LoadUserStyleSheetForStructure (doc);
                               else
                                 {
                                   LoadStyleSheet (refcss->url, doc, refInfo->PiLink, NULL,
@@ -669,7 +787,7 @@ char *CssToPrint (Document doc, char *printdir)
           elType = TtaGetElementType (el);
           name = TtaGetSSchemaName (elType.ElSSchema);
           index = 0;
-          if (!strcmp (name, "HTML"))
+          if (!IsNotHTMLorHTML5 (name))
             {
               elType.ElTypeNum = HTML_EL_HEAD;
               head = TtaSearchTypedElement (elType, SearchForward, el);
@@ -781,7 +899,7 @@ static void GenerateStyle (const char * data , ThotBool add, ThotBool check)
     {
       // should the style be applied to a COL or COLGROUP element ?
       colcolgroup = FALSE;
-      if (!strcmp (name, "HTML"))
+      if (!IsNotHTMLorHTML5 (name))
         {
           if (elType.ElTypeNum == HTML_EL_COL ||
               elType.ElTypeNum == HTML_EL_COLGROUP)
@@ -980,7 +1098,7 @@ static Element NewSpanElement (Document doc, ThotBool *open)
       parent = TtaGetParent (first);
       elType = TtaGetElementType (parent);
       i =  TtaGetElementVolume (first);
-      if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) &&
           elType.ElTypeNum == HTML_EL_Span)
         {
           elType.ElTypeNum = HTML_EL_TEXT_UNIT;
@@ -1891,7 +2009,7 @@ ThotBool RemoveSpecificStyle (Document doc, const char *cssproperty)
       parent2 = TtaGetParent (el);
       attrType.AttrSSchema = elType.ElSSchema;
       name = TtaGetSSchemaName (elType.ElSSchema);
-      if (!strcmp (name, "HTML"))
+      if (!IsNotHTMLorHTML5 (name))
         attrType.AttrTypeNum =  HTML_ATTR_Style_;
 #ifdef _SVG
       else if (!strcmp (name, "SVG"))
@@ -2589,7 +2707,7 @@ static void InitCSSDialog (Document doc, char *s)
                       /* skip HTML style attributes */
                       elType = TtaGetElementType (pInfo->PiLink);
                       name = TtaGetSSchemaName (elType.ElSSchema);
-                      if (!strcmp (name, "HTML") && elType.ElTypeNum == HTML_EL_STYLE_)
+                      if (!IsNotHTMLorHTML5 (name) && elType.ElTypeNum == HTML_EL_STYLE_)
                         {
                           ptr = (char *)TtaGetMemory (strlen (localname) + 11);
                           sprintf (ptr, "%s%d", localname, sty);
@@ -2746,7 +2864,7 @@ void LinkCSS (Document doc, View view)
   docSchema = TtaGetDocumentSSchema (doc);
   /* LinkAsCSS and LinkAsXmlCSS will be cleared by
      SetREFattribute or by CallbackDialogue */
-  if (strcmp(TtaGetSSchemaName (docSchema), "HTML") != 0)
+  if (IsNotHTMLorHTML5(TtaGetSSchemaName (docSchema)) != 0)
     {
       /* Create a style within a XML document */
       LinkAsXmlCSS = TRUE;

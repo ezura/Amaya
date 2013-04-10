@@ -13,7 +13,7 @@
  *
  */
  
-/* This module is used by the html2thot parser and the css parser. */
+/* This module is used by the html2thot parser, htmlfive2thot parser and the css parser. */
 
 #define THOT_EXPORT extern
 #include "amaya.h"
@@ -58,52 +58,59 @@ int MapGI (char *gi, SSchema *schema, Document doc)
   char            c;
   int             i;
   int             entry;
-  ThotBool	  isHTML; 
-  ThotBool	  level; 
+  ThotBool	  isHTML;
+  ThotBool	  isHTML5; 
+  ThotBool	  level;
+  ElemMapping     *pCurrentHTMLGIMapping;
 
   /* TODO: use NameSpaces to search in the right table */
   entry = -1;
   if (*schema == NULL)
     {
       isHTML = FALSE;
+      isHTML5 = FALSE;
       ptr = NULL;
     }
   else
     {
       ptr = TtaGetSSchemaName (*schema);
       isHTML = !strcmp (ptr, "HTML");
+      isHTML5 = !strcmp (ptr, "HTML5");
     }
 
   i = 0;
-  if (*schema == NULL || isHTML)
+  if (*schema == NULL || isHTML || isHTML5)
     {
       /*
 	First convert the first char into lower case to locate
 	registered tags in the HTML mapping table.
 	Entries are registered in upper case and in alphabetic order.
       */
+      
+      /* select HTMLmapping Table */
+      pCurrentHTMLGIMapping = isHTML5 ? pHTML5GIMapping : pHTMLGIMapping;
 
       /* TODO: define a function which works on unicode */
       c = tolower (gi[0]);
       /* look for the first concerned entry in the table */
-      while (pHTMLGIMapping[i].XMLname[0] < c
-	     && pHTMLGIMapping[i].XMLname[0] != EOS)
+      while (pCurrentHTMLGIMapping[i].XMLname[0] < c
+	     && pCurrentHTMLGIMapping[i].XMLname[0] != EOS)
 	i++;
 
       /* look at all entries starting with the right character */
       do
 	{
-	  if (strcasecmp (pHTMLGIMapping[i].XMLname, gi))
+	  if (strcasecmp (pCurrentHTMLGIMapping[i].XMLname, gi))
 	    i++;
 	  else
 	    entry = i;
 	}
-      while (entry < 0 && pHTMLGIMapping[i].XMLname[0] == c);
+      while (entry < 0 && pCurrentHTMLGIMapping[i].XMLname[0] == c);
     }
 
   if (entry < 0)
     {
-      if (*schema != NULL && isHTML)
+      if (*schema != NULL && (isHTML || isHTML5))
 	*schema = NULL;
       else
 	/* not found. Look at the XML mapping tables */
@@ -140,8 +147,14 @@ void GIType (const char *gi, ElementType *elType, Document doc)
   char              c;
   char             *ptr;
   int               i;
-  ThotBool	    level; 
+  ThotBool	    level;
+  ThotBool          isHTML5;
+  ElemMapping      *pCurrentHTMLGIMapping;
 
+  /* check SSchema (HTML or HTML5) */
+  isHTML5 = !strcmp (TtaGetSSchemaName(TtaGetDocumentSSchema(doc)), "HTML5");
+  pCurrentHTMLGIMapping = isHTML5 ? pHTML5GIMapping : pHTMLGIMapping;
+  
   /* TODO: use NameSpaces to search in the right table */
   elType->ElSSchema = NULL;
   elType->ElTypeNum = 0;
@@ -157,22 +170,22 @@ void GIType (const char *gi, ElementType *elType, Document doc)
 
   i = 0;
   /* look for the first concerned entry in the table */
-  while (pHTMLGIMapping[i].XMLname[0] < c &&
-	 pHTMLGIMapping[i].XMLname[0] != EOS)
+  while (pCurrentHTMLGIMapping[i].XMLname[0] < c &&
+	 pCurrentHTMLGIMapping[i].XMLname[0] != EOS)
     i++;
   /* look at all entries starting with the right character */
   do
     {
-      if (!strcasecmp (pHTMLGIMapping[i].XMLname, gi))
+      if (!strcasecmp (pCurrentHTMLGIMapping[i].XMLname, gi))
       {
 	if (doc != 0)
-        elType->ElSSchema = TtaGetSSchema ("HTML", doc);
-	elType->ElTypeNum = pHTMLGIMapping[i].ThotType;
+        elType->ElSSchema = TtaGetSSchema (isHTML5 ? "HTML5" : "HTML", doc);
+	elType->ElTypeNum = pCurrentHTMLGIMapping[i].ThotType;
 	return;
       }
       i++;
     }
-  while (pHTMLGIMapping[i].XMLname[0] == c);
+  while (pCurrentHTMLGIMapping[i].XMLname[0] == c);
 
   /* if not found, look at the XML mapping tables */
   MapXMLElementType (MATH_TYPE, gi, elType, &ptr, &c, &level, doc);
@@ -191,16 +204,24 @@ AttributeMapping   *MapAttr (char *attrName, SSchema *schema,
   typeName          attr, elem;
   int               i;
   int               thotType;
+  ThotBool          isHTML5;
 
   *schema = TtaGetDocumentSSchema (doc);
+  /* check SSchema is HTML or HTML5 */
+  isHTML5 = !strcmp (TtaGetSSchemaName(*schema), "HTML5");
+  
   LowercaseGI (attrName, attr);
-  LowercaseGI (pHTMLGIMapping[elemEntry].XMLname, elem);
+  if (isHTML5)
+    LowercaseGI (pHTML5GIMapping[elemEntry].XMLname, elem);
+  else
+    LowercaseGI (pHTMLGIMapping[elemEntry].XMLname, elem);
+
   i = MapXMLAttribute (XHTML_TYPE, attr, elem, level, doc, &thotType);
   if (i < 0)
     /* not found */
     return (NULL);
   else
-    return (&(pHTMLAttributeMapping[i]));
+    return (isHTML5 ? &(pHTML5AttributeMapping[i]):&(pHTMLAttributeMapping[i]));
 }
 
 
@@ -216,6 +237,10 @@ AttributeMapping *MapHTMLAttribute (const char *attrName,
 				    Document doc)
 {
   int             i;
+  ThotBool        isHTML5;
+  
+  /* check SSchema is HTML or HTML5 */
+  isHTML5 = !strcmp (TtaGetSSchemaName(TtaGetDocumentSSchema(doc)), "HTML5");
 
   attrType->AttrSSchema = GetXHTMLSSchema (doc);
   i = MapXMLAttribute (XHTML_TYPE, attrName, elementName,
@@ -223,6 +248,5 @@ AttributeMapping *MapHTMLAttribute (const char *attrName,
   if (i < 0)
     return (NULL);
   else
-    return (&(pHTMLAttributeMapping[i]));
+    return (isHTML5 ? &(pHTML5AttributeMapping[i]):&(pHTMLAttributeMapping[i]));
 }
-

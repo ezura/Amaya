@@ -40,6 +40,7 @@
 
 #include "fetchXMLname_f.h"
 #include "MENUconf.h"
+#include "HTML5checker.h"
 
 /* Paths from which looking for templates.*/
 Prop_Templates_Path *TemplateRepositoryPaths = NULL;
@@ -180,7 +181,7 @@ Element GetParentLine (Element el, SSchema templateSSchema)
   if (parent && parentType.ElSSchema)
     {
       name = TtaGetSSchemaName (parentType.ElSSchema);
-      if (name == NULL || strcmp (name, "HTML") ||
+      if (name == NULL || IsNotHTMLorHTML5 (name) ||
           (parentType.ElTypeNum != HTML_EL_Pseudo_paragraph &&
            parentType.ElTypeNum != HTML_EL_Paragraph))
         parent = NULL;
@@ -2329,7 +2330,7 @@ void TemplateCreateFreeBox (Document doc, View view)
       if (selElem)
         {
           TtaGiveLastSelectedElement(doc, &selElem2, &firstChar2, &lastChar2);
-          sshtml  = TtaGetSSchema ("HTML", doc);
+          sshtml  = GetSSchemaHTMLorHTML5 (doc);
           selType = TtaGetElementType(selElem);
           selType2 = TtaGetElementType(selElem2);
           bagType.ElSSchema = sstempl;
@@ -2818,7 +2819,7 @@ Element Template_CreateUseFromSelection (Document doc, int view, ThotBool create
     return NULL;
 
   sstempl = TtaGetSSchema ("Template", doc);
-  sshtml  = TtaGetSSchema ("HTML", doc);
+  sshtml  = GetSSchemaHTMLorHTML5 (doc);
   buffer[0] = EOS;
   if (doc && TtaGetDocumentAccessMode(doc) && sstempl &&
       IsTemplateDocument(doc) && !IsTemplateInstanceDocument(doc))

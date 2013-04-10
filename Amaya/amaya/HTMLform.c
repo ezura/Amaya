@@ -46,6 +46,7 @@
 #include "HTMLimage_f.h"
 #include "HTMLsave_f.h"
 #include "AHTURLTools_f.h"
+#include "HTML5checker.h"
 
 char        *FormBuf;    /* temporary buffer used to build the query string */
 int          FormLength;  /* size of the temporary buffer */
@@ -287,7 +288,7 @@ static void SubmitOption (Element option, char *name, Document doc)
 
   /* check if element is selected */
   charset = TtaGetDocumentCharset (doc);
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_Selected;
   attr = TtaGetAttribute (option, attrType);
   if (attr && TtaGetAttributeValue (attr) == HTML_ATTR_Selected_VAL_Yes_)
@@ -376,7 +377,7 @@ static void ResetOption (Element option, ThotBool multipleSelects,
   Attribute           attr, def;
   AttributeType       attrType;
 
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_DefaultSelected;
   def = TtaGetAttribute (option, attrType);
   attrType.AttrTypeNum = HTML_ATTR_Selected;
@@ -421,7 +422,7 @@ static void ResetOptionMenu (Element menu, Document doc)
   ThotBool            multipleSelects, defaultSelected;
 
   /* reset according to the default attribute */
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_Multiple;
   attr = TtaGetAttribute (menu, attrType);
   if (attr && TtaGetAttributeValue (attr) == HTML_ATTR_Multiple_VAL_Yes_)
@@ -524,7 +525,7 @@ static void ParseForm (Document doc, Element ancestor, Element el, int mode)
   
   charset = TtaGetDocumentCharset (doc);
   lang = TtaGetDefaultLanguage ();      
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_NAME;
   attrTypeS.AttrSSchema = attrType.AttrSSchema;
   TtaSearchAttribute (attrType, SearchForward, ancestor, &el, &attr);
@@ -1251,7 +1252,7 @@ void SelectOneOption (Document doc, Element el)
 #ifdef _WINGUI
   opDoc = doc;
 #endif /* _WINGUI */
-  htmlSch = TtaGetSSchema ("HTML", doc);
+  htmlSch = GetSSchemaHTMLorHTML5 (doc);
   /* search the enclosing option element */
   do
     {

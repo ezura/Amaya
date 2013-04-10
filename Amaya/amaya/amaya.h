@@ -32,6 +32,7 @@
 /* Included headerfiles */
 #include "EDITOR.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "MathML.h"
 #include "SVG.h"
 #include "TextFile.h"
@@ -532,6 +533,7 @@ typedef enum
 {
   docFree,
   docHTML,
+  docHTML5,
   docText,
   docImage,
   docCSS,
@@ -625,6 +627,8 @@ THOT_EXPORT Document                 DocumentSource[DocumentTableLength];
 THOT_EXPORT int                      FilesLoading[DocumentTableLength];
 /* Status (error, success) of the download of the objects of a document */
 THOT_EXPORT int                      DocNetworkStatus[DocumentTableLength];
+/* Show Sections (loaded amaya_structure.css) */
+THOT_EXPORT ThotBool                 IsShowSections[DocumentTableLength];
 
 
 #define RESOURCE_NOT_LOADED       0
@@ -699,6 +703,8 @@ THOT_EXPORT LoadedImageDesc *LoadedResources;
 #define DOCTYPE1_XHTML_PLUS_RDFa      "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML+RDFa 1.0//EN\""
 #define DOCTYPE1_MATHML20             "<!DOCTYPE math PUBLIC \"-//W3C//DTD MathML 2.0//EN\""
 #define DOCTYPE1_SVG10                "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.0//EN\""
+#define DOCTYPE1_HTML5                "<!DOCTYPE html"
+#define DOCTYPE1_HTML5_LEGACY         "<!DOCTYPE html SYSTEM \"about:legacy-compat\""
 
 /* second line of doctype declarations */
 #define DOCTYPE2_HTML_STRICT          "      \"http://www.w3.org/TR/html4/strict.dtd\">"
@@ -712,6 +718,8 @@ THOT_EXPORT LoadedImageDesc *LoadedResources;
 #define DOCTYPE2_XHTML_PLUS_RDFa      "      \"http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd\">"
 #define DOCTYPE2_MATHML20             "      \"http://www.w3.org/TR/MathML2/dtd/mathml2.dtd\">"
 #define DOCTYPE2_SVG10                "      \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">"
+#define DOCTYPE2_HTML5                ">"
+#define DOCTYPE2_HTML5_LEGACY         ">"
 
 #define MATHML_XSLT_NAME     "pmathml.xsl"
 #define MATHML_XSLT_URI      "xml-stylesheet type=\"text/xsl\" href=\""

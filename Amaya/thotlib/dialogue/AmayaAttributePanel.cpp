@@ -1140,7 +1140,7 @@ bool AmayaNumAttributeSubpanel::SetAttrListElem(PtrAttrListElem elem)
       if (pAttr)
         {
           title = pAttr->AttrName;
-          if (!strcmp (elem->pSS->SsName, "HTML") &&
+          if ((!strcmp (elem->pSS->SsName, "HTML") || !strcmp (elem->pSS->SsName, "HTML5")) &&
               (!strcmp (title, "rowspan") ||
                !strcmp (title, "colspan") ||
                !strcmp (title, "rows") ||

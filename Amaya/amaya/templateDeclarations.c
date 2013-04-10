@@ -29,6 +29,7 @@
 #include "wxdialogapi_f.h"
 #include "templates_f.h"
 #include "message.h"
+#include "HTML5checker.h"
 
 #define UNION_ANY            "any"
 #define UNION_ANYCOMPONENT   "anyComponent"
@@ -605,7 +606,7 @@ void Declaration_CalcBlockLevel (XTigerTemplate t, Declaration dec)
                   while (s &&
                          (!strcmp (s, "Template") &&
                           elType.ElTypeNum == Template_EL_repeat) ||
-                         (!strcmp (s, "HTML") &&
+                         (!IsNotHTMLorHTML5 (s) &&
                           elType.ElTypeNum == HTML_EL_Pseudo_paragraph))
                     {
                       // ignore repeat and pseudo paragraphs

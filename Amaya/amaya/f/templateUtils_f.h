@@ -6,7 +6,7 @@
 #ifndef __CEXTRACT__
 #ifdef __STDC__
 
-extern const char *GetSchemaFromDocType ( DocumentType docType );
+//extern const char *GetSchemaFromDocType ( DocumentType docType );
 extern ThotBool IsUseInstantiated ( Element el,
                                     Document doc );
 extern void SetAttributeStringValue ( Element el,
@@ -59,7 +59,7 @@ extern Element TemplateFindHead ( Document doc );
 
 #else /* __STDC__ */
 
-extern const char *GetSchemaFromDocType ( DocumentType docType );
+//extern const char *GetSchemaFromDocType ( Document doc );
 extern ThotBool IsUseInstantiated ( Element el,
                                       Document doc );
 extern void SetAttributeStringValue ( Element el,

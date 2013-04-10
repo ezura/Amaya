@@ -5,6 +5,7 @@
  *
  */
 
+
 #include "templates.h"
 #include "Templatename.h"
 #include "templates_f.h"
@@ -13,13 +14,15 @@
 #include "HTMLsave_f.h"
 #include "templateUtils_f.h"
 #include <stdarg.h>
+#include "HTML5checker.h"
 
 /*----------------------------------------------------------------------
 GetSchemaFromDocType: Returns the name of the schema corresponding to
 a doc type.
 ----------------------------------------------------------------------*/
-const char *GetSchemaFromDocType (DocumentType docType)
+/*const char *GetSchemaFromDocType (Document doc)
 {
+	DocumentType docType = Ttagetdocument
 #ifdef TEMPLATES
 	switch (docType)
     {
@@ -33,12 +36,16 @@ const char *GetSchemaFromDocType (DocumentType docType)
 		return "MathML";
     case docXml :
 		return "XML";
+	case docHTML5 :
+		return "HTML5";
     default :
+		if(TtaGetDocumentProfile(doc)==L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			return "HTML5";
 		return "HTML";
     }
 #endif // TEMPLATES
 	return "HTML";
-}
+}*/
 
 /*----------------------------------------------------------------------
   IsUseInstantiated
@@ -363,7 +370,7 @@ Element GetFirstEditableElement (Element el)
       // skip col colgroup 
       elType = TtaGetElementType (current);
       if ((elType.ElSSchema &&
-           strcmp (TtaGetSSchemaName(elType.ElSSchema), "HTML")) ||
+           IsNotHTMLorHTML5 (TtaGetSSchemaName(elType.ElSSchema))) ||
           (elType.ElTypeNum != HTML_EL_ColStruct &&
            elType.ElTypeNum != HTML_EL_Table_head &&
            elType.ElTypeNum != HTML_EL_Comment_))
@@ -715,14 +722,20 @@ char *SaveDocumentToNewDoc(Document doc, Document newdoc, char* newpath)
   elType = TtaGetElementType (root);
   // get the target document type
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     {
-      /* docType = docHTML; */
-      if (TtaGetDocumentProfile(doc) == L_Xhtml11 ||
-          TtaGetDocumentProfile(doc) == L_Basic)
-        res = TtaExportDocumentWithNewLineNumbers (doc, localFile, "HTMLT11", FALSE);
-      else
-        res = TtaExportDocumentWithNewLineNumbers (doc, localFile, "HTMLTX", FALSE);
+
+	  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+		 res = TtaExportDocumentWithNewLineNumbers (doc, localFile, "HTML5TX", FALSE);
+	  else
+	  {
+		  /* docType = docHTML; */
+		  if (TtaGetDocumentProfile(doc) == L_Xhtml11 ||
+			  TtaGetDocumentProfile(doc) == L_Basic)
+			res = TtaExportDocumentWithNewLineNumbers (doc, localFile, "HTMLT11", FALSE);
+		  else
+			res = TtaExportDocumentWithNewLineNumbers (doc, localFile, "HTMLTX", FALSE);
+	  }
     }
   else if (strcmp (s, "SVG") == 0)
     /* docType = docSVG; */
@@ -792,7 +805,7 @@ Element TemplateFindHead (Document doc)
     {
       // create the template head
       head = TtaNewElement (doc, headType);
-      if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         {
           elType.ElTypeNum = HTML_EL_HEAD;
           root = TtaSearchTypedElement (elType, SearchInTree, root);

@@ -42,6 +42,7 @@ static ElemMapping    XHTMLElemMappingTable[] =
    {"embed",  'E', HTML_EL_Embed_, L_TransitionalValue, TRUE},
    {"fieldset", SPACE, HTML_EL_FIELDSET, L_StrictValue, FALSE},
    {"font", SPACE, HTML_EL_Font_, L_TransitionalValue, TRUE},
+   {"footer", SPACE, HTML_EL_footer, 0, FALSE},
    {"form", SPACE, HTML_EL_Form, L_BasicValue, FALSE},
    {"frame", 'E', HTML_EL_FRAME, L_TransitionalValue, FALSE},
    {"frameset", SPACE, HTML_EL_FRAMESET, L_TransitionalValue, FALSE},

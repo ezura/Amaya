@@ -810,7 +810,7 @@ void ComputeMBP (PtrAbstractBox pAb, int frame, ThotBool horizRef,
             pBox->BxTMargin = GetPixelValue (pAb->AbTopMargin, pAb->AbTopMarginUnit, dim,
                                              pAb, ViewFrameTable[frame - 1].FrMagnification);
           if (pBox->BxType == BoTable && pEl && pEl->ElStructSchema && pEl->ElStructSchema->SsName &&
-              !strcmp (pEl->ElStructSchema->SsName, "HTML"))
+              (!strcmp (pEl->ElStructSchema->SsName, "HTML") || !strcmp (pEl->ElStructSchema->SsName, "HTML5")))
             {
               pBox->BxTPadding = 0;
               pBox->BxTBorder = 0;
@@ -843,7 +843,7 @@ void ComputeMBP (PtrAbstractBox pAb, int frame, ThotBool horizRef,
             pBox->BxBMargin = GetPixelValue (pAb->AbBottomMargin, pAb->AbBottomMarginUnit, dim,
                                              pAb, ViewFrameTable[frame - 1].FrMagnification);
           if (pBox->BxType == BoTable && pEl && pEl->ElStructSchema && pEl->ElStructSchema->SsName &&
-              !strcmp (pEl->ElStructSchema->SsName, "HTML"))
+              (!strcmp (pEl->ElStructSchema->SsName, "HTML") || !strcmp (pEl->ElStructSchema->SsName, "HTML5")))
             {
               pBox->BxBPadding = 0;
               pBox->BxBBorder = 0;

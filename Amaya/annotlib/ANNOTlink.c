@@ -36,6 +36,7 @@
 /* schema includes */
 #include "XLink.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "MathML.h"
 #include "SVG.h"
 #include "XML.h"
@@ -515,7 +516,7 @@ ThotBool LINK_AddLinkToSource (Document source_doc, AnnotMeta *annot)
         }
       TtaInsertFirstChild (&anchor, el, source_doc);
     }
-  else if (!strcmp (docSchemaName, "HTML"))
+  else if (!strcmp (docSchemaName, "HTML") || !strcmp (docSchemaName, "HTML5"))
     {
       /* it's an HTML document */
       el = first;

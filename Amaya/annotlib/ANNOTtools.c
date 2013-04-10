@@ -2952,6 +2952,12 @@ void ANNOT_CreateBodyTree (Document doc, DocumentType bodyType)
           elType.ElSSchema = GetGenericXMLSSchema ("XML", doc);
           elType.ElTypeNum = XML_EL_XML;
         }
+	  else if (bodyType == docHTML5)
+        {
+          elType.ElSSchema = GetGenericXMLSSchema ("HTML5", doc);
+          elType.ElTypeNum = HTML_EL_HTML;
+          ns_uri = XHTML_URI;
+        }
       else /* consider the default case to be HTML */
         {
           elType.ElSSchema = GetXHTMLSSchema (doc);

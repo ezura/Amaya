@@ -17,6 +17,7 @@
 #include "html2thot_f.h"
 #include "MathML.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "parser.h"
 #include "styleparser_f.h"
 #include "style.h"
@@ -34,6 +35,8 @@ extern XmlEntity *pMathEntityTable;
 #include "Mathedit_f.h"
 #include "styleparser_f.h"
 #include "fetchXMLname_f.h"
+
+#include "HTML5checker.h"
 
 /*----------------------------------------------------------------------
   IsLargeOp
@@ -4290,7 +4293,7 @@ void   SetDisplaystyleMathElement (Element el, Document doc)
           if (!strcmp (TtaGetSSchemaName (parentType.ElSSchema), "SVG"))
             /* a <math> element in a SVG element */
             display = MathML_ATTR_IntDisplaystyle_VAL_true;
-          else if (!strcmp (TtaGetSSchemaName (parentType.ElSSchema), "HTML"))
+          else if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (parentType.ElSSchema)))
             /* a <math> element in a HTML element */
             {
               display = MathML_ATTR_IntDisplaystyle_VAL_false;

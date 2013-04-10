@@ -953,10 +953,10 @@ char *GetStyleContents (Element el)
       elType = TtaGetElementType (el);
       attrType.AttrSSchema = elType.ElSSchema;
       name = TtaGetSSchemaName (attrType.AttrSSchema);
-      if (!strcmp (name, "HTML"))
+      if (!strcmp (name, "HTML") || !strcmp (name, "HTML5"))
         attrType.AttrTypeNum = HTML_ATTR_media;
 #ifdef _SVG
-      else if (!strcmp (name, "HTML"))
+      else if (!strcmp (name, "HTML") || !strcmp (name, "HTML5"))
         attrType.AttrTypeNum = SVG_ATTR_media;
 #endif /* _SVG */
       else

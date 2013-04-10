@@ -19,7 +19,7 @@
 
 #include "init_f.h"
 #include "AHTURLTools_f.h"
-
+#include "HTML5checker.h"
 #define MAX_PRINT_URL_LENGTH 50
 typedef struct _HTURI
 {
@@ -461,7 +461,7 @@ ThotBool ImageElement (Document doc, char **url, Element *image)
     return FALSE;
 
   /* find the value of the src attribute */
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_SRC;
   el = TtaGetRootElement (doc);
   TtaSearchAttribute (attrType, SearchInTree, el, &imgEl, &srcAttr);
@@ -1311,7 +1311,7 @@ char  *GetBaseURL (Document doc)
 
   /* is it a HTML document ? */
   elType.ElSSchema = TtaGetDocumentSSchema (doc);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     /* it's a HTML document */
     {
       /* get the document element */

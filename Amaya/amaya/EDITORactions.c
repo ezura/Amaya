@@ -66,6 +66,7 @@
 #include "appdialogue_wx.h"
 #include "SVGedit_f.h"
 #include "wxdialog/ListNSDlgWX.h"
+#include "HTML5checker.h"
 
 #ifdef DAV
 #define WEBDAV_EXPORT extern
@@ -138,7 +139,7 @@ void RemoveDeprecatedElements (Document doc, View view)
 
   elType = TtaGetElementType (el);
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp (s, "HTML"))
+  if (!IsNotHTMLorHTML5 (s))
     {
       /* check if there is HTML Hi elements and if the current position is
          within a HTML Body element */
@@ -280,7 +281,7 @@ void RemoveDeprecatedElements (Document doc, View view)
           if (el)
             {
               elType = TtaGetElementType (el);
-              if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") ||
+              if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) ||
                   (elType.ElTypeNum != HTML_EL_Division &&
                    elType.ElTypeNum != HTML_EL_Table_ &&
                    elType.ElTypeNum != HTML_EL_IMG &&
@@ -525,6 +526,12 @@ void CreateDoctype (Document doc, Element doctype, int profile, int extraProfile
       lineType.ElTypeNum = HTML_EL_DOCTYPE_line;
       piType.ElTypeNum = HTML_EL_XMLPI;
     }
+  else if (profile == L_HTML5 || profile == L_HTML5_LEGACY)
+    {
+      elType.ElTypeNum = HTML5_EL_DOCTYPE;
+      lineType.ElTypeNum = HTML5_EL_DOCTYPE_line;
+      piType.ElTypeNum = HTML5_EL_XMLPI;
+    }
 #ifdef _SVG
   else if (profile == L_SVG) 
     {
@@ -593,6 +600,10 @@ void CreateDoctype (Document doc, Element doctype, int profile, int extraProfile
       private_dtd = TtaGetEnvString ("LOCAL_HTML_DOCTYPE_1");
       if (private_dtd && private_dtd[0] != EOS)
         TtaSetTextContent (text, (unsigned char*)private_dtd, language, doc);
+	  else if (profile == L_HTML5)
+		  TtaSetTextContent (text, (unsigned char*)DOCTYPE1_HTML5, language, doc);
+	  else if (profile == L_HTML5_LEGACY)
+		  TtaSetTextContent (text, (unsigned char*)DOCTYPE1_HTML5_LEGACY, language, doc);
       else if (profile == L_Basic)
         TtaSetTextContent (text, (unsigned char*)DOCTYPE1_XHTML10_BASIC, language, doc);
       else if (profile == L_Strict && DocumentMeta[doc]->xmlformat)
@@ -647,6 +658,10 @@ void CreateDoctype (Document doc, Element doctype, int profile, int extraProfile
       private_dtd = TtaGetEnvString ("LOCAL_HTML_DOCTYPE_2");
       if (private_dtd && private_dtd[0] != EOS)
         TtaSetTextContent (text, (unsigned char*)private_dtd, language, doc);
+	  else if (profile == L_HTML5)
+		  TtaSetTextContent (text, (unsigned char*)DOCTYPE2_HTML5, language, doc);
+	  else if (profile == L_HTML5_LEGACY)
+		  TtaSetTextContent (text, (unsigned char*)DOCTYPE2_HTML5_LEGACY, language, doc);
       else if (profile == L_Basic)
         TtaSetTextContent (text, (unsigned char*)DOCTYPE2_XHTML10_BASIC, language, doc);
       else if (profile == L_Strict && DocumentMeta[doc]->xmlformat)
@@ -794,9 +809,13 @@ void InitializeNewDoc (char *url, int docType, Document doc, int profile,
       
       /* Load user's style sheet */
       LoadUserStyleSheet (doc);
+	  /* LoadUserStyleSheetForStructure (doc); */
 
       /* Set the namespace declaration */
-      elType.ElTypeNum = HTML_EL_HTML;
+	  if (TtaGetDocumentProfile (doc) == L_HTML5 || TtaGetDocumentProfile (doc) == L_HTML5_LEGACY)
+		elType.ElTypeNum = HTML_EL_HTML; /* TODO */
+	  else
+		elType.ElTypeNum = HTML_EL_HTML;
       root = TtaSearchTypedElement (elType, SearchInTree, docEl);
       TtaSetANamespaceDeclaration (doc, root, NULL, XHTML_URI);
       TtaSetUriSSchema (elType.ElSSchema, XHTML_URI);
@@ -991,7 +1010,7 @@ void InitializeNewDoc (char *url, int docType, Document doc, int profile,
       TtaSetANamespaceDeclaration (doc, root, "xt", Template_URI);
       SetAttributeStringValue(root, Template_ATTR_version, Template_Current_Version);
       SetAttributeStringValue(root, Template_ATTR_templateVersion, "1.0");
-      TtaNewNature (doc, elType.ElSSchema,  NULL, "HTML", "HTMLP");
+	  TtaNewNature (doc, elType.ElSSchema,  NULL, "HTML", "HTMLP");
       TtaSetANamespaceDeclaration (doc, root, "ht", XHTML_URI);
 
       /* force the XML parsing */
@@ -1182,7 +1201,8 @@ void NotFoundDoc (char *url, Document doc)
       if (doctype)
         TtaDeleteTree (doctype, doc);
       /* Load user's style sheet */
-      LoadUserStyleSheet (doc);
+      LoadUserStyleSheet (doc); 
+	  /* LoadUserStyleSheetForStructure (doc); */
 
       /* Set the namespace declaration */
       elType.ElTypeNum = HTML_EL_HTML;
@@ -1327,8 +1347,10 @@ static void CreateOrChangeDoctype (Document doc, View view, int new_doctype,
       /* save the current state of the document */
       if (DocumentTypes[doc] == docLibrary || DocumentTypes[doc] == docHTML)
         {
-          if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
+		  if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
             TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLT11", FALSE);
+		  else if (TtaGetDocumentProfile (doc) == L_HTML5 || TtaGetDocumentProfile (doc) == L_HTML5_LEGACY)
+			TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTML5", FALSE);
           else if (DocumentMeta[doc]->xmlformat || xmlDoctype)
             TtaExportDocumentWithNewLineNumbers (doc, tempdoc, "HTMLTX", FALSE);
           else
@@ -1387,7 +1409,7 @@ void RemoveDoctype (Document doc, View view)
 
   /* Search the doctype declaration according to the main schema */
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     elType.ElTypeNum = HTML_EL_DOCTYPE;
   else if (strcmp (s, "SVG") == 0)
     elType.ElTypeNum = SVG_EL_DOCTYPE;
@@ -1519,6 +1541,26 @@ void CreateDoctypeHtmlTransitional (Document doc, View view)
 void CreateDoctypeHtmlStrict (Document doc, View view)
 {
   CreateOrChangeDoctype (doc, view, L_Strict, 0, FALSE, FALSE, FALSE);
+  UpdateEditorMenus (doc);
+}
+
+/*--------------------------------------------------------------------------
+  CreateDoctypeHtml5
+  Create or change the doctype for a HTML Strict document
+  --------------------------------------------------------------------------*/
+void CreateDoctypeHtml5 (Document doc, View view)
+{
+  CreateOrChangeDoctype (doc, view, L_HTML5, 0, FALSE, FALSE, FALSE);
+  UpdateEditorMenus (doc);
+}
+
+/*--------------------------------------------------------------------------
+  CreateDoctypeHtml5Legacy
+  Create or change the doctype for a HTML Strict document
+  --------------------------------------------------------------------------*/
+void CreateDoctypeHtml5Legacy (Document doc, View view)
+{
+  CreateOrChangeDoctype (doc, view, L_HTML5_LEGACY, 0, FALSE, FALSE, FALSE);
   UpdateEditorMenus (doc);
 }
 
@@ -1761,7 +1803,7 @@ void SpellCheck (Document doc, View view)
 
   docEl = TtaGetMainRoot (doc);
   elType = TtaGetElementType (docEl);
-  if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+  if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
     {
       elType.ElTypeNum = HTML_EL_BODY;
       body = TtaSearchTypedElement (elType, SearchInTree, docEl);
@@ -1828,7 +1870,7 @@ void CreateBreak (Document doc, View view)
       if (dispMode == DisplayImmediately)
         TtaSetDisplayMode (doc, dispMode);
     }
-  else if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  else if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
     {
       /* within HTML element */
       elType.ElTypeNum = HTML_EL_BR;
@@ -1884,7 +1926,7 @@ Element InsertWithinHead (Document doc, View view, int elementT)
   ThotBool            before;
 
   docSchema = TtaGetDocumentSSchema (doc);
-  if (strcmp(TtaGetSSchemaName (docSchema), "HTML") != 0)
+  if (IsNotHTMLorHTML5(TtaGetSSchemaName (docSchema)))
     /* not within an HTML document */
     return (NULL);
   else
@@ -2176,7 +2218,7 @@ void CreateDate (Document doc, View view)
     {
       elType = TtaGetElementType (el);
       s = TtaGetSSchemaName (elType.ElSSchema);
-      if (!strcmp (s, "HTML"))
+      if (!IsNotHTMLorHTML5 (s))
         elType.ElTypeNum = HTML_EL_Comment_;
 #ifdef _SVG
       else if (!strcmp (s, "SVG"))
@@ -2194,7 +2236,7 @@ void CreateDate (Document doc, View view)
           while (parent)
             {
               elType = TtaGetElementType (parent);
-              if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+              if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                 {
                   el = parent;
                   parent = NULL;
@@ -2273,7 +2315,7 @@ void CreateScript (Document doc, View view, ThotBool externalFile)
     {
       elType = TtaGetElementType (el);
       s = TtaGetSSchemaName (elType.ElSSchema);
-      if (strcmp (s, "HTML") || elType.ElTypeNum != HTML_EL_HEAD)
+      if (IsNotHTMLorHTML5 (s) || elType.ElTypeNum != HTML_EL_HEAD)
         {
           headType.ElSSchema = elType.ElSSchema;
           headType.ElTypeNum = HTML_EL_HEAD;
@@ -2303,10 +2345,10 @@ void CreateScript (Document doc, View view, ThotBool externalFile)
     }
 
   TtaOpenUndoSequence (doc, NULL, NULL, 0, 0);
-  if (s == NULL || strcmp (s, "HTML") || elType.ElTypeNum == HTML_EL_HEAD)
+  if (s == NULL || IsNotHTMLorHTML5 (s) || elType.ElTypeNum == HTML_EL_HEAD)
     {
       /* cannot insert at the current position */
-      if (!strcmp (TtaGetSSchemaName (docSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (docSchema)))
         /* insert within the head of this HTML document */
         el = InsertWithinHead (doc, view, HTML_EL_SCRIPT_);
       else
@@ -2428,7 +2470,7 @@ ThotBool HTMLelementAllowed (Document doc)
         }
     }
 
-  if (strcmp (s, "HTML") == 0)
+  if (!IsNotHTMLorHTML5 (s))
     /* within an HTML element */
     return TRUE;
 #ifdef TEMPLATES
@@ -2464,7 +2506,7 @@ ThotBool HTMLelementAllowed (Document doc)
               if (ancestor)
                 {
                   elType = TtaGetElementType (ancestor);
-                  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+                  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                     /* this is an HTML element */
                     return TRUE;
                   sibling = ancestor;
@@ -2486,7 +2528,7 @@ ThotBool HTMLelementAllowed (Document doc)
               if (ancestor)
                 {
                   elType = TtaGetElementType (ancestor);
-                  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+                  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                     /* this is an HTML element */
                     return TRUE;
                   sibling = ancestor;
@@ -2513,7 +2555,7 @@ ThotBool CreateHTMLelement (int typeNum, Document doc)
       dispMode = TtaGetDisplayMode (doc);
       if (dispMode == DisplayImmediately)
         TtaSetDisplayMode (doc, SuspendDisplay);
-      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
       elType.ElTypeNum = typeNum;
       done = TtaCreateElement (elType, doc);
       if (dispMode == DisplayImmediately)
@@ -2634,7 +2676,7 @@ void IndentListItem (Document doc, View view)
   SSchema             sshtml;
   int                 firstChar, lastChar, i;
 
-  sshtml  = TtaGetSSchema ("HTML", doc);
+  sshtml  = GetSSchemaHTMLorHTML5 (doc);
   TtaGiveFirstSelectedElement (doc, &el, &firstChar, &lastChar);
   if (el && sshtml)
     {
@@ -2728,7 +2770,7 @@ void UnindentListItem (Document doc, View view)
   int                 firstChar, lastChar, i;
   ThotBool            emptylist = FALSE;
 
-  sshtml  = TtaGetSSchema ("HTML", doc);
+  sshtml  = GetSSchemaHTMLorHTML5 (doc);
   TtaGiveFirstSelectedElement (doc, &el, &firstChar, &lastChar);
   if (el && sshtml)
     {
@@ -2889,7 +2931,7 @@ ThotBool ReplaceEmptyItem (int typeNum, Document doc)
       s = TtaGetSSchemaName (elType.ElSSchema);
       empty = TtaGetElementVolume (el) == 0;
       while (empty &&
-             (elType.ElTypeNum != HTML_EL_List_Item || strcmp (s, "HTML")))
+             (elType.ElTypeNum != HTML_EL_List_Item || IsNotHTMLorHTML5 (s)))
         {
           // check if it's an empty content of an empty list item
           child = el;
@@ -2909,7 +2951,7 @@ ThotBool ReplaceEmptyItem (int typeNum, Document doc)
             }
         }
       if (empty &&
-          elType.ElTypeNum == HTML_EL_List_Item && !strcmp (s, "HTML"))
+          elType.ElTypeNum == HTML_EL_List_Item && !IsNotHTMLorHTML5 (s))
         {
           prev = el;
           TtaPreviousSibling (&prev);
@@ -2990,7 +3032,7 @@ void CreateDefinitionTerm (Document doc, View view)
       TtaGiveFirstSelectedElement (doc, &el, &firstChar, &lastChar);
       elType = TtaGetElementType (el);
       if (elType.ElTypeNum == HTML_EL_Definition &&
-          !strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+          !IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
       {
         // get the enclosing Term_List
         parent = TtaGetParent(el);
@@ -3001,7 +3043,7 @@ void CreateDefinitionTerm (Document doc, View view)
           {
             elType = TtaGetElementType (list);
             if (elType.ElTypeNum != HTML_EL_Term_List ||
-                strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+                IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
               list = NULL;
           }
 
@@ -3105,7 +3147,7 @@ void CreateDefinitionDef (Document doc, View view)
       TtaGiveFirstSelectedElement (doc, &el, &firstChar, &lastChar);
       elType = TtaGetElementType (el);
       if (elType.ElTypeNum == HTML_EL_Term &&
-          !strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+          !IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
       {
         // get the enclosing Term_List
         parent = TtaGetParent(el);
@@ -3116,7 +3158,7 @@ void CreateDefinitionDef (Document doc, View view)
           {
             elType = TtaGetElementType (list);
             if (elType.ElTypeNum != HTML_EL_Definitions ||
-                strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+                IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
               list = NULL;
           }
         // check if there is a next term
@@ -3253,7 +3295,7 @@ void CreateRuby (Document doc, View view)
   DisplayMode   dispMode;
   ThotBool      oldStructureChecking;
 
-  elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+  elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
   elType.ElTypeNum = HTML_EL_complex_ruby;
   /* if we are already within a ruby element, return immediately */
   TtaGiveFirstSelectedElement (doc, &firstEl, &firstSelectedChar, &j);
@@ -3310,12 +3352,12 @@ void CreateRuby (Document doc, View view)
                   elType = TtaGetElementType (el);
                   if ((elType.ElTypeNum == HTML_EL_simple_ruby ||
                        elType.ElTypeNum == HTML_EL_complex_ruby) &&
-                      !strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+                      !IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
                     /* it's a ruby element. Error */
                     error = TRUE;
                   else
                     {
-                      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+                      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
                       elType.ElTypeNum = HTML_EL_simple_ruby;
                       if (TtaSearchTypedElement (elType, SearchInTree, el))
                         error = TRUE;
@@ -3499,7 +3541,7 @@ void DoTableCreation (Document doc)
   /* get the new Table element */
   TtaSetDisplayMode (doc, SuspendDisplay);
   TtaLockTableFormatting ();
-  elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+  elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
   elType.ElTypeNum = HTML_EL_Table_;
   TtaCreateElement (elType, doc);
   TtaGiveFirstSelectedElement (doc, &el, &firstChar, &i);
@@ -3644,7 +3686,7 @@ void CreateTable (Document doc, View view)
 
   withinTable = FALSE;
   inMath = FALSE;
-  sch = TtaGetSSchema ("HTML", doc);
+  sch = GetSSchemaHTMLorHTML5 (doc);
   TtaGiveFirstSelectedElement (doc, &firstSel, &firstChar, &lastChar);
   if (firstSel)
     {
@@ -3653,7 +3695,7 @@ void CreateTable (Document doc, View view)
       elType.ElSSchema = elTypeFirst.ElSSchema;
       name = TtaGetSSchemaName (elType.ElSSchema);
       if ((!strcmp (name, "MathML") && elTypeFirst.ElTypeNum == MathML_EL_MTABLE) ||
-          (!strcmp (name, "HTML") && elTypeFirst.ElTypeNum == HTML_EL_Table_))
+          (!IsNotHTMLorHTML5 (name) && elTypeFirst.ElTypeNum == HTML_EL_Table_))
         return;
       else if (!strcmp (name, "MathML"))
         /* the current selection starts with a MathML element */
@@ -3668,7 +3710,7 @@ void CreateTable (Document doc, View view)
                elTypeFirst.ElTypeNum == MathML_EL_MTD))
             return;
         }
-      else if (!strcmp (name, "HTML"))
+      else if (!IsNotHTMLorHTML5 (name))
         /* the current selection starts with a HTML element */
         {
           elType.ElTypeNum = HTML_EL_Table_;
@@ -3755,7 +3797,7 @@ void CreateCaption (Document doc, View view)
     /* there is a current selection */
     {
       elType = TtaGetElementType (el);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* the selected element is an HTML element */
         {
           caption = NULL;
@@ -3906,7 +3948,7 @@ static void ChangeCell (Document doc, View view, int typeCell)
         return;
 
       TtaGiveLastSelectedElement (doc, &lastSel, &firstchar, &lastchar);
-      HTMLSSchema = TtaGetSSchema ("HTML", doc);
+      HTMLSSchema = GetSSchemaHTMLorHTML5 (doc);
       el = firstSel;
       elType = TtaGetElementType (el);
 
@@ -4101,7 +4143,7 @@ static Element GetEnclosingCell (Document doc, ThotBool first,
       while (el &&
              (strcmp (s, "MathML") ||
               elType.ElTypeNum != MathML_EL_MTD) &&
-             (strcmp (s, "HTML") ||
+             (IsNotHTMLorHTML5 (s) ||
               (elType.ElTypeNum != HTML_EL_Data_cell &&
                elType.ElTypeNum != HTML_EL_Heading_cell)))
         {
@@ -4145,7 +4187,7 @@ void CellVertExtend (Document doc, View view)
     {
       elType = TtaGetElementType (cell);
       inMath = !TtaSameSSchemas (elType.ElSSchema, 
-                                 TtaGetSSchema ("HTML", doc));
+                                 GetSSchemaHTMLorHTML5 (doc));
       /* get the column of the cell */
       attrType.AttrSSchema = elType.ElSSchema;
       if (inMath)
@@ -4280,7 +4322,7 @@ void CellHorizExtend (Document doc, View view)
     {
       elType = TtaGetElementType (cell);
       inMath = !TtaSameSSchemas (elType.ElSSchema,
-                                 TtaGetSSchema ("HTML", doc));
+                                 GetSSchemaHTMLorHTML5 (doc));
       /* get the column of the cell */
       attrType.AttrSSchema = elType.ElSSchema;
       colspanType.AttrSSchema = elType.ElSSchema;
@@ -4412,7 +4454,7 @@ static Element GetEnclosingRow (Document doc, ThotBool first)
       elType = TtaGetElementType (el);
       s = TtaGetSSchemaName (elType.ElSSchema);
       while (el &&
-             (strcmp (s, "HTML") ||
+             (IsNotHTMLorHTML5 (s) ||
               elType.ElTypeNum != HTML_EL_Table_row) &&
              (strcmp (s, "MathML") ||
               (elType.ElTypeNum != MathML_EL_MTR &&
@@ -4705,7 +4747,7 @@ ThotBool CanVShrinkCell (Document doc)
   if (!lastCell || lastCell != cell)
     return FALSE;
   elType = TtaGetElementType (cell);
-  inMath = !TtaSameSSchemas (elType.ElSSchema, TtaGetSSchema ("HTML", doc));
+  inMath = !TtaSameSSchemas (elType.ElSSchema, GetSSchemaHTMLorHTML5 (doc));
   attrType.AttrSSchema = elType.ElSSchema;
   if (inMath)
     attrType.AttrTypeNum = MathML_ATTR_rowspan_;
@@ -4745,7 +4787,7 @@ void CellVertShrink (Document doc, View view)
   if (!lastCell || lastCell != cell)
     return;
   elType = TtaGetElementType (cell);
-  inMath = !TtaSameSSchemas (elType.ElSSchema, TtaGetSSchema ("HTML", doc));
+  inMath = !TtaSameSSchemas (elType.ElSSchema, GetSSchemaHTMLorHTML5 (doc));
   attrType.AttrSSchema = elType.ElSSchema;
   if (inMath)
     attrType.AttrTypeNum = MathML_ATTR_rowspan_;
@@ -4800,7 +4842,7 @@ ThotBool CanHShrinkCell (Document doc)
   if (!lastCell || lastCell != cell)
     return FALSE;
   elType = TtaGetElementType (cell);
-  inMath = !TtaSameSSchemas (elType.ElSSchema, TtaGetSSchema ("HTML", doc));
+  inMath = !TtaSameSSchemas (elType.ElSSchema, GetSSchemaHTMLorHTML5 (doc));
   attrType.AttrSSchema = elType.ElSSchema;
   if (inMath)
     attrType.AttrTypeNum = MathML_ATTR_columnspan;
@@ -4836,7 +4878,7 @@ void CellHorizShrink (Document doc, View view)
   if (!lastCell || lastCell != cell)
     return;
   elType = TtaGetElementType (cell);
-  inMath = !TtaSameSSchemas (elType.ElSSchema, TtaGetSSchema ("HTML", doc));
+  inMath = !TtaSameSSchemas (elType.ElSSchema, GetSSchemaHTMLorHTML5 (doc));
   attrType.AttrSSchema = elType.ElSSchema;
   if (inMath)
     attrType.AttrTypeNum = MathML_ATTR_columnspan;
@@ -4915,7 +4957,7 @@ static void CreateRow (Document doc, View view, ThotBool before)
           /* get the rowspan of the cell */
           elType = TtaGetElementType (cell);
           inMath = !TtaSameSSchemas (elType.ElSSchema,
-                                     TtaGetSSchema ("HTML", doc));
+                                     GetSSchemaHTMLorHTML5 (doc));
           attrType.AttrSSchema = elType.ElSSchema;
           if (inMath)
             attrType.AttrTypeNum = MathML_ATTR_rowspan_;
@@ -5172,7 +5214,7 @@ static Element BeginningOrEndOfTBody (Element cell, Document doc,
   if (cell)
     {
       elType = TtaGetElementType (cell);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* not an HTML Cell */
         return NULL;
       /* get the enclosing tbody */
@@ -5184,7 +5226,7 @@ static Element BeginningOrEndOfTBody (Element cell, Document doc,
             elType = TtaGetElementType (tbody);
         }
       while (tbody &&
-             (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") ||
+             (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) ||
               elType.ElTypeNum != HTML_EL_tbody));
 
       if (tbody == NULL)
@@ -5210,7 +5252,7 @@ static Element BeginningOrEndOfTBody (Element cell, Document doc,
                 elType = TtaGetElementType (cell);
             }
           while (cell &&
-                 (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") ||
+                 (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) ||
                   (elType.ElTypeNum != HTML_EL_Data_cell &&
                    elType.ElTypeNum != HTML_EL_Heading_cell)));
           *before = (cell == NULL);
@@ -5360,7 +5402,7 @@ Element GetEnclosingForm (Document doc, View view)
     {
       /* there is a selection */
       elType = TtaGetElementType (el);
-      while (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") != 0
+      while (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) != 0
              && elType.ElTypeNum != HTML_EL_BODY
              && elType.ElTypeNum != HTML_EL_Form)
         {
@@ -5459,7 +5501,7 @@ void CreateForm (Document doc, View view)
     {
       elType = TtaGetElementType (el);
       elType.ElTypeNum = HTML_EL_Form;
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* the selection is within some HTML document or fragment */
         {
           /* create the form element */
@@ -5822,7 +5864,63 @@ void  CreateReset (Document doc, View view)
   ----------------------------------------------------------------------*/
 void  CreateDivision (Document doc, View view)
 {
-  CreateHTMLelement (HTML_EL_Division, doc);
+  CreateHTMLelement (HTML5_EL_Division, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateArticle
+  ----------------------------------------------------------------------*/
+void  CreateArticle (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_article, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateSection
+  ----------------------------------------------------------------------*/
+void  CreateSection (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_section, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateHeader
+  ----------------------------------------------------------------------*/
+void  CreateHeader (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_header, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateFooter
+  ----------------------------------------------------------------------*/
+void  CreateFooter (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_footer, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateNav
+  ----------------------------------------------------------------------*/
+void  CreateNav (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_nav, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateHgroup
+  ----------------------------------------------------------------------*/
+void  CreateHgroup (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_hgroup, doc);
+}
+
+/*----------------------------------------------------------------------
+  CreateAside
+  ----------------------------------------------------------------------*/
+void  CreateAside (Document doc, View view)
+{
+  CreateHTMLelement (HTML5_EL_aside, doc);
 }
 
 /*----------------------------------------------------------------------
@@ -5850,7 +5948,7 @@ void  CreateIFrame (Document doc, View view)
     {
       /* Don't check mandatory attributes */
       TtaSetStructureChecking (FALSE, doc);
-      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
       elType.ElTypeNum = HTML_EL_IFRAME;
       if (TtaInsertElement (elType, doc))
         {
@@ -5943,7 +6041,7 @@ void  CreateOrChangeLink (Document doc, View view)
         {
           elType = TtaGetElementType (el);
           s = TtaGetSSchemaName (elType.ElSSchema);
-          if ((elType.ElTypeNum != HTML_EL_Anchor || strcmp (s, "HTML"))
+          if ((elType.ElTypeNum != HTML_EL_Anchor || IsNotHTMLorHTML5 (s))
 #ifdef _SVG
               && (elType.ElTypeNum != SVG_EL_a || strcmp (s, "SVG"))
 #endif /* _SVG */
@@ -5958,7 +6056,7 @@ void  CreateOrChangeLink (Document doc, View view)
           else if (TtaIsReadOnly (el))
            {
              if (!IsTemplateInstanceDocument (doc) ||
-                 (!strcmp (s, "HTML") && !AllowAttributeEdit (el, doc, "href")) ||
+                 (!IsNotHTMLorHTML5 (s) && !AllowAttributeEdit (el, doc, "href")) ||
                  (!strcmp (s, "SVG") && !AllowAttributeEdit (el, doc, "xlink:href")))
                /* the selected element is read-only */
                return;
@@ -6017,7 +6115,7 @@ void DoDeleteAnchor (Document doc, View view, ThotBool noCallback)
         return;
 
       elType = TtaGetElementType (firstSelectedElement);
-      if (strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") != 0)
+      if (IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* the first selected element is not an HTML element. Do nothing */
         return;
 
@@ -6303,7 +6401,7 @@ void SelectAll (Document doc, View view)
   switch(DocumentTypes[doc])
   {
     case docHTML:
-      elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+      elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
       elType.ElTypeNum = HTML_EL_BODY;
       el = TtaSearchTypedElement(elType, SearchInTree, TtaGetRootElement(doc));
       if(el)
@@ -6312,5 +6410,35 @@ void SelectAll (Document doc, View view)
     default:
       TtaSelectElement(doc, TtaGetRootElement(doc));
       break;
+  }
+}
+
+/*----------------------------------------------------------------------
+  ShowSections
+  TODO
+  ----------------------------------------------------------------------*/
+void ShowSections (Document doc, View view)
+{
+  CSSInfoPtr          css;
+  PInfoPtr            pInfo;
+
+  /* update state anyway */
+  IsShowSections[doc] = !IsShowSections[doc];
+
+  if (UserCSSForStr) {
+    css = SearchCSS (doc, UserCSSForStr, NULL, &pInfo);
+    if (css && pInfo) {
+		if (IsShowSections[doc])
+			LoadUserStyleSheetForStructure (doc);
+		else {
+			if(!css->url)
+				RemoveStyle (css->localName, doc, TRUE, FALSE, NULL, CSS_USER_STYLE);
+			else
+				RemoveStyle (css->url, doc, TRUE, FALSE, NULL, CSS_USER_STYLE);
+		}
+	}
+	else {
+		LoadUserStyleSheetForStructure (doc);
+	}
   }
 }

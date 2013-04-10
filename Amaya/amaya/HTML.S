@@ -39,9 +39,9 @@ ATTR
    Highlight = Yes_;    { to show the HTML element corresponding to the
 			  current selection in the source view }
    IntEntity = Yes_;	{ do not translate & into &amp; in output file }
-   EntityName = Text;   { the content of the element is the name of an entity }
+   EntityName = Text;                                            { the content of the element is the name of an entity }
    xmlid = Text;		{ xml:id }
-   xml_space = xml_space_default, xml_space_preserve; { xml:space }
+   xml_space = xml_space_default, xml_space_preserve;            { xml:space }
    NoImages = Yes_;
    NoObjects = Yes_;
 
@@ -59,7 +59,7 @@ STRUCT
 	   Namespaces = Text; RealLang = Yes_; Charset = Text) =
         BEGIN
         HEAD;
-      ? BODY;        { only one of BODY, document type }
+      ? BODY;                                                    { only one of BODY, document type }
       ? FRAMESET;
         END + (Invalid_element, ASP_element, Unknown_namespace, XHTML_Unknown_namespace, Comment\240, XMLPI, CDATA);
         
@@ -81,11 +81,13 @@ STRUCT
      (ATTR profile = Text) =
         AGGREGATE
         Document_URL = TEXT - (STYLE_, SCRIPT_, META, LINK);
-        TITLE = TEXT - (STYLE_, SCRIPT_, META, LINK);                { TITLE }
-      ? ISINDEX (ATTR Prompt = Text) = CONSTANT C_Empty;        { ISINDEX }
+        TITLE = TEXT - (STYLE_, SCRIPT_, META, LINK);            { TITLE }
+      ? ISINDEX;                                                { ISINDEX }
                     { prompt }
-      ? BASE;                                                        { BASE }
+      ? BASE;                                                    { BASE }
         END + (Object, STYLE_, SCRIPT_, META, LINK);
+	
+  ISINDEX (ATTR Prompt = Text) = CONSTANT C_Empty;         { ISINDEX }
 
   STYLE_                                                        { STYLE }
      (ATTR !Notation = Text; media = Text) =
@@ -155,31 +157,38 @@ STRUCT
         LIST OF (Element);
 
   Element = CASE OF                                                { block }
-        Paragraph;                                                { P }
+        Paragraph;                                               { P }
         Pseudo_paragraph;
-        Heading;                                                { heading }
-        List_;                                                        { list + DL }
-        Preformatted;                                                { PRE preformatted }
+        Heading;                                                 { heading }
+        List_;                                                   { list + DL }
+        Preformatted;                                            { PRE preformatted }
         Division;                                                { DIV }
-        Center;                                                        { CENTER }
-        SCRIPT_;                                                { SCRIPT }
-        NOSCRIPT = LIST OF (Element) - (SCRIPT_);                { NOSCRIPT }
-        Block_Quote;                                                { BLOCKQUOTE }
-        Form;                                                        { FORM }
-        ISINDEX;                                                { ISINDEX }
-        Horizontal_Rule;                                        { HR }
-        Table_;                                                        { TABLE }
+        Center;                                                  { CENTER }
+        SCRIPT_;                                                 { SCRIPT }
+        NOSCRIPT;                                                { NOSCRIPT }
+        Block_Quote;                                             { BLOCKQUOTE }
+        Form;                                                    { FORM }
+        ISINDEX;                                                 { ISINDEX }
+        Horizontal_Rule;                                         { HR }
+        Table_;                                                  { TABLE }
         FIELDSET;                                                { FIELDSET }
-        Address;                                                { ADDRESS }
-        IMG;                                                          { IMG }
+        Address;                                                 { ADDRESS }
+        IMG;                                                     { IMG }
         INS;
         DEL;
-        Object;                                                        { OBJECT }
-        Applet;                                                        { APPLET }
+        Object;                                                  { OBJECT }
+        Applet;                                                  { APPLET }
         MathML;                                                  { MATH }
-        SVG;                                  { SVG }
-        XLink;                                                        { Annotations }
-        External_Object                  { IMG type=svg}
+        SVG;                                                     { SVG }
+        XLink;                                                   { Annotations }
+        External_Object;                  { IMG type=svg}
+        Embed_;                                                  { EMBED }
+        Template;                                                { XTiger }
+        END;
+	
+	NOSCRIPT = LIST OF (Element) - (SCRIPT_);                       { NOSCRIPT }
+	
+	External_Object                  { IMG type=svg}
             (ATTR SRC;
                 { src }
                   Height_; Width__;
@@ -199,6 +208,7 @@ STRUCT
                  BEGIN
                  External_Object_Content;
                  END;
+		 
         Embed_                                                { EMBED }
             (ATTR SRC;
                   Alignment;
@@ -219,8 +229,6 @@ STRUCT
                 BEGIN
                 Embed_Content;
                 END;
-        Template;           { XTiger }
-        END;
 
         HTMLfragment = LIST OF (Element);
         External_Object_Content = NATURE;
@@ -255,14 +263,22 @@ STRUCT
   Pseudo_paragraph = Basic_Set;
 
   Heading = CASE OF                                                { heading }
-        H1 (ATTR TextAlign) = Basic_Set;                        { H1 }
+        H1;                                                      { H1 }
                { align }
-        H2 (ATTR TextAlign) = Basic_Set;                        { H2 }
-        H3 (ATTR TextAlign) = Basic_Set;                        { H3 }
-        H4 (ATTR TextAlign) = Basic_Set;                        { H4 }
-        H5 (ATTR TextAlign) = Basic_Set;                        { H5 }
-        H6 (ATTR TextAlign) = Basic_Set;                        { H6 }
+        H2;                                                      { H2 }
+        H3;                                                      { H3 }
+        H4;                                                      { H4 }
+        H5;                                                      { H5 }
+        H6;                                                      { H6 }
         END;
+	
+  H1 (ATTR TextAlign) = Basic_Set;                               { H1 }
+       { align }
+  H2 (ATTR TextAlign) = Basic_Set;                               { H2 }
+  H3 (ATTR TextAlign) = Basic_Set;                               { H3 }
+  H4 (ATTR TextAlign) = Basic_Set;                               { H4 }
+  H5 (ATTR TextAlign) = Basic_Set;                               { H5 }
+  H6 (ATTR TextAlign) = Basic_Set;                               { H6 }
 
   Preformatted                                                        { PRE }
      (ATTR Width__; IntWidthPercent; IntWidthPxl) =
@@ -291,31 +307,36 @@ STRUCT
 
   Basic_Elem = CASE OF                                                { special }
         TEXT;
-        Font;                                                        { fontstyle }
-        Phrase;                                                        { phrase }
-        Form_Element;                                           { formctrl }
-        Anchor;                                                        { A }
-        IMG;                                                { IMG }
-        Applet;                                                        { APPLET }
-        Font_;                                                        { FONT }
+        Font;                                                    { fontstyle }
+        Phrase;                                                  { phrase }
+        Form_Element;                                            { formctrl }
+        Anchor;                                                  { A }
+        IMG;                                                     { IMG }
+        Applet;                                                  { APPLET }
+        Font_;                                                   { FONT }
         BaseFont;                                                { BASEFONT }
-        BR;                                                        { BR }
-        SCRIPT_;                                                { SCRIPT }
-        Quotation;                                                { Q }
-        Subscript = Basic_Set;                                        { SUB }
-        Superscript = Basic_Set;                                { SUP }
-        Span = Basic_Set;                                        { SPAN }
+        BR;                                                      { BR }
+        SCRIPT_;                                                 { SCRIPT }
+        Quotation;                                               { Q }
+        Subscript;                                               { SUB }
+        Superscript;                                             { SUP }
+        Span;                                                    { SPAN }
         map; MAP;                                                { MAP }
-        BDO (ATTR !dir) = Basic_Set;                                { BDO }
-        Object;                                                        { OBJECT }
-        Embed_;                                                        { EMBED }
-        IFRAME;                                                        { IFRAME }
-        ruby;                                                   { ruby }
-        MathML;                                                        { MATH }
-        XLink;                                                        { Annotations }
-        Template;           { XTiger }
-        External_Object;                                        { External Object }
+        BDO;                                                     { BDO }
+        Object;                                                  { OBJECT }
+        Embed_;                                                  { EMBED }
+        IFRAME;                                                  { IFRAME }
+        ruby;                                                    { ruby }
+        MathML;                                                  { MATH }
+        XLink;                                                   { Annotations }
+        Template;                                                { XTiger }
+        External_Object;                                         { External Object }
         END;
+	
+  Subscript = Basic_Set;                                         { SUB }
+  Superscript = Basic_Set;                                       { SUP }
+  Span = Basic_Set;                                              { SPAN }
+  BDO (ATTR !dir) = Basic_Set;                                   { BDO }
 
   BaseFont                                                        { BASEFONT }
      (ATTR !BaseFontSize = Integer; BaseFontColor = Text;
@@ -335,29 +356,48 @@ STRUCT
         Basic_Set;
 
   Font = CASE OF                { fontstyle }
-        Teletype_text = Basic_Set;        { TT }
-        Italic_text = Basic_Set;        { I }
-        Bold_text = Basic_Set;                { B }
-        Underlined_text = Basic_Set;        { U }
-        Struck_text = Basic_Set;        { S or STRIKE }
-        Big_text = Basic_Set;                { BIG }
-        Small_text = Basic_Set;                { SMALL }
+        Teletype_text;                                           { TT }
+        Italic_text;                                             { I }
+        Bold_text;                                               { B }
+        Underlined_text;                                         { U }
+        Struck_text;                                             { S or STRIKE }
+        Big_text;                                                { BIG }
+        Small_text;                                              { SMALL }
         END;
+  
+  Teletype_text = Basic_Set;                                     { TT }
+  Italic_text = Basic_Set;                                       { I }
+  Bold_text = Basic_Set;                                         { B }
+  Underlined_text = Basic_Set;                                   { U }
+  Struck_text = Basic_Set;                                       { S or STRIKE }
+  Big_text = Basic_Set;                                          { BIG }
+  Small_text = Basic_Set;                                        { SMALL }
 
   Phrase = CASE OF                { phrase }
-        Emphasis = Basic_Set;                { EM }
-        Strong = Basic_Set;                { STRONG }
-        Def = Basic_Set;                { DFN }
-        Code = Basic_Set;                { CODE }
-        Sample = Basic_Set;                { SAMP }
-        Keyboard = Basic_Set;                { KBD }
-        Variable_ = Basic_Set;                { VAR }
-        Cite = Basic_Set;                { CITE }
-        ABBR = Basic_Set;                { ABBR }
-        ACRONYM = Basic_Set;                { ACRONYM }
-        ins;                             { INS }
-        del;                             { DEL }
+        Emphasis;                                                { EM }
+        Strong;                                                  { STRONG }
+        Def;                                                     { DFN }
+        Code;                                                    { CODE }
+        Sample;                                                  { SAMP }
+        Keyboard;                                                { KBD }
+        Variable_;                                               { VAR }
+        Cite;                                                    { CITE }
+        ABBR;                                                    { ABBR }
+        ACRONYM;                                                 { ACRONYM }
+        ins;                                                     { INS }
+        del;                                                     { DEL }
         END;
+
+  Emphasis = Basic_Set;                                          { EM }
+  Strong = Basic_Set;                                            { STRONG }
+  Def = Basic_Set;                                               { DFN }
+  Code = Basic_Set;                                              { CODE }
+  Sample = Basic_Set;                                            { SAMP }
+  Keyboard = Basic_Set;                                          { KBD }
+  Variable_ = Basic_Set;                                         { VAR }
+  Cite = Basic_Set;                                              { CITE }
+  ABBR = Basic_Set;                                              { ABBR }
+  ACRONYM = Basic_Set;                                           { ACRONYM }
 
   Font_                                                                { FONT }
      (ATTR Font_size = Text; color = Text; face = Text;
@@ -377,10 +417,13 @@ STRUCT
          {  height }
            Alignment; hspace; vspace) =
          { align      hspace  vspace }
-        LIST OF (Applet_Content = CASE OF
-                                  Parameter;                        { PARAM }
-                                  Basic_Set;
-                                  END);
+        LIST OF (Applet_Content);
+	
+  Applet_Content = CASE OF
+                  Parameter;                                     { PARAM }
+                  Basic_Set;
+                  END;
+
   Parameter                                                        { PARAM }
      (ATTR !Param_name = Text; Param_value = Text;
          { name               value }
@@ -407,9 +450,17 @@ STRUCT
          { hspace  vspace }
         BEGIN
         PICTURE;
-        Object_Content = LIST OF (ElemOrParam = CASE OF
-                                    Element; Parameter; END);   { PARAM }
+        Object_Content;
         END;
+	
+  Object_Content = LIST OF (ElemOrParam);
+
+  ElemOrParam = CASE OF
+                  Element;
+		  Parameter;
+		  END;
+		  
+  FlowOrIntOrParam = ANY; { Dummy }
 
   INS                                                                { INS }
      (ATTR cite; datetime = Text; InternalLink; ExternalLink) =
@@ -466,10 +517,10 @@ STRUCT
 
   List_ = CASE OF                                                { list }
         Unnumbered_List;                                         { UL }
-        Numbered_List;                                                { OL }
-        Directory;                                                { DIR }
-        Menu;                                                        { MENU }
-        Definition_List;                                        { DL }
+        Numbered_List;                                           { OL }
+        Directory;                                               { DIR }
+        Menu;                                                    { MENU }
+        Definition_List;                                         { DL }
         END;
 
   Unnumbered_List                                                 { UL }
@@ -497,6 +548,8 @@ STRUCT
      (ATTR COMPACT) =
          { compact }
         LIST OF (List_Item);
+	
+  ListItemSet = ANY; { Dummy }
 
   List_Item                                                        { LI }
      (ATTR ItemStyle = disc_, circle_, square_, Arabic_,
@@ -513,9 +566,14 @@ STRUCT
         LIST OF (Definition_Item);
 
   Definition_Item = BEGIN
-        Term_List = LIST OF (Term = Basic_Set);                        { DT }
-      ? Definitions = LIST OF (Definition = LIST OF (Block));        { DD }
+        Term_List;                                               { DT }
+      ? Definitions;                                             { DD }
         END;
+	
+  Term_List = LIST OF (Term = Basic_Set);                        { DT }
+  
+  Definitions = LIST OF (Definition = LIST OF (Block));          { DD }
+  
 
   Form                                                                { FORM }
      (ATTR !Script_URL = Text; METHOD = Get_, Post_;
@@ -527,11 +585,11 @@ STRUCT
         LIST OF (Element) + (Input) - (Form);
 
   Form_Element = CASE OF
-        Input;                                                  { INPUT }
-        Option_Menu;                                                { SELECT }
-        Text_Area;                                                 { TEXTAREA }
-        LABEL;                                                  { LABEL }
-        BUTTON_;                                                { BUTTON }
+        Input;                                                   { INPUT }
+        Option_Menu;                                             { SELECT }
+        Text_Area;                                               { TEXTAREA }
+        LABEL;                                                   { LABEL }
+        BUTTON_;                                                 { BUTTON }
         END;
 
   Option_Menu                                                   { SELECT }
@@ -541,7 +599,12 @@ STRUCT
           { disabled         tabindex  onfocus  onblur}
             onchange = Text) =
           { onchange }
-        LIST OF (Option_item = CASE OF Option; OptGroup; END) - (Input);
+        LIST OF (Option_item) - (Input);
+	
+  Option_item = CASE OF
+                  Option;
+		  OptGroup;
+		END;
 
   Option                                                        { OPTION }
      (ATTR Selected = Yes_; DefaultSelected = Yes_; ShowMe = Yes_;
@@ -568,8 +631,10 @@ STRUCT
   FIELDSET =                                                        { FIELDSET }
         BEGIN
         LEGEND;
-        Fieldset_Content = LIST OF (Element);
+        Fieldset_Content;
         END;
+
+  Fieldset_Content = LIST OF (Element);
 
   LEGEND                                                        { LEGEND }
      (ATTR accesskey; LAlign = Top_, Bottom_, Left_, Right_) =
@@ -709,8 +774,8 @@ STRUCT
                 { accesskey  onfocus  onblur }
                 Basic_Set;
 
-    Option_Menu;                                        { SELECT }
-    Text_Area;                                        { TEXTAREA }
+    Option_Menu;                                                 { SELECT }
+    Text_Area;                                                   { TEXTAREA }
     END;
 
   Input_Text = BEGIN
@@ -733,19 +798,37 @@ STRUCT
            datapagesize = Text; IntWidthPxl; IntWidthPercent) =
          { datapagesize }
         BEGIN
-      ? CAPTION;                                                { CAPTION }
-      ? ColStruct = CASE OF
-            Cols = LIST OF (COL);                               { COL }
-            Colgroups = LIST OF (COLGROUP);                     { COLGROUP }
+      ? CAPTION;                                                 { CAPTION }
+      ? ColStruct;
+        Table_head;
+	Table_content;
+        END;
+
+  TbodyOrTr = ANY; { Dummy }
+  
+  ColStruct = CASE OF
+            Cols;                                                { COL }
+            Colgroups;                                           { COLGROUP }
             END;
-        Table_head = LIST OF (Column_head);
-	Table_content =
+	    
+  Cols = LIST OF (COL);
+  
+  Colgroups = LIST OF (COLGROUP);
+	    
+  Table_head = LIST OF (Column_head);
+  
+  tbodys = ANY;	{ Dummy }
+  
+  table_row_oneOrMore = ANY; { Dummy }
+  
+  Table_content =
 	    BEGIN
           ? thead;                                               { THEAD }
-            Table_body = LIST OF (tbody);
+            Table_body;
           ? tfoot;                                               { TFOOT }
 	    END;
-        END;
+	    
+  Table_body = LIST OF (tbody);
 
   CAPTION                                                        { CAPTION }
      (ATTR Position = Position_top, Position_bottom,
@@ -806,8 +889,8 @@ STRUCT
         LIST OF (Table_cell);
 
   Table_cell = CASE OF
-        Data_cell;                                                { TD }
-        Heading_cell;                                                { TH }
+        Data_cell;                                               { TD }
+        Heading_cell;                                            { TH }
         END;
 
   Data_cell                                                        { TD }
@@ -871,12 +954,18 @@ STRUCT
            onload; onunload) =
          { onload  onunload }
         AGGREGATE
-        Frames = LIST [1 .. *] OF (FrameElem = CASE OF
-                                        FRAME;
-                                        FRAMESET;
-                                        END - (NOFRAMES));
-      ? NOFRAMES = BODY;                                               { NOFRAMES }
+        Frames;
+      ? NOFRAMES;                                                { NOFRAMES }
         END;
+	
+  Frames = LIST [1 .. *] OF (FrameElem);
+	
+  FrameElem = CASE OF
+                FRAME;
+                FRAMESET;
+              END - (NOFRAMES);
+
+  NOFRAMES = BODY;                                               { NOFRAMES }
 
   FRAME                                                                { FRAME }
      (ATTR longdesc; NAME; FrameSrc = Text;
@@ -897,9 +986,12 @@ STRUCT
            Alignment; Width__; Height_) =
          { align      width    height }
         BEGIN
-        Iframe_Src_Content= NATURE;
-        Iframe_Content = LIST OF (Element);                     { flow }
+        Iframe_Src_Content;
+        Iframe_Content;                                          { flow }
         END;
+	
+  Iframe_Src_Content= NATURE;
+  Iframe_Content = LIST OF (Element);                            { flow }
 
   ruby =                                                        { ruby }
         CASE OF
@@ -909,34 +1001,47 @@ STRUCT
 
   simple_ruby =                                                 { ruby }
         BEGIN
-        rb = Basic_Set - (simple_ruby, complex_ruby);
-        RtOrRtWithPar = CASE OF
-              rt (ATTR rbspan = Integer) =
-                  Basic_Set - (simple_ruby, complex_ruby);
-              RtWithPar = BEGIN
-                  rp = TEXT;
+        rb;
+        RtOrRtWithPar;
+        END;
+	
+  rb = Basic_Set - (simple_ruby, complex_ruby);
+  
+  RtOrRtWithPar = CASE OF
+              rt;
+              RtWithPar;
+              END;
+  
+  rt (ATTR rbspan = Integer) = Basic_Set - (simple_ruby, complex_ruby);
+  
+  RtWithPar = BEGIN
+                  rp;
                   rt;
                   rp;
                   END;
-              END;
-        END;
+		  
+  rp = TEXT;
 
   complex_ruby =                                               { ruby }
         BEGIN
-        rbc = LIST OF (rb);
-        rtc1 = LIST OF (rt);
-      ? rtc2 = LIST OF (rt);
-        END;        
+        rbc;
+        rtc1;
+      ? rtc2;
+        END;
+	
+  rbc = LIST OF (rb);
+  rtc1 = LIST OF (rt);
+  rtc2 = LIST OF (rt);
         
   { AnyLink is an alias for all elements with an attribute
     of type URI.  Only elements to be shown in the Links view
     are taken into account }
   AnyLink = CASE OF
-        Anchor;             { HREF_ }
-        Block_Quote;        { cite }
-        Quotation;          { cite }
-        ins;                { cite }
-        del;                { cite }
+        Anchor;                                                  { HREF_ }
+        Block_Quote;                                             { cite }
+        Quotation;                                               { cite }
+        ins;                                                     { cite }
+        del;                                                     { cite }
         END;
 
   { ParagEquiv is an alias for elements that are usually formatted like
@@ -949,6 +1054,81 @@ STRUCT
 	Preformatted;
 	CAPTION;
 	END;
+	
+	
+  { HTML5 new elements }
+  MetadataContent = ANY;       { Metadata Content Dummy }
+   
+  MetadataContentList = ANY;   { Metadata Content }
+  
+  FlowContent = ANY;             { flow content dummy }
+  
+  FlowSet = ANY; { Dummy }
+
+  SectioningContent = ANY;  { Sectioning content dummy }
+	 
+  HeadingContent = ANY;      { Heading content dummy }
+
+  PhrasingContent = ANY;      { Phrasing content dummy }
+	 
+  ScriptingElement = ANY;      { scripting element dummy }
+	 
+  TextLevelSemantics_ex_rt_rp = ANY;     { Text-level semantics dummy }
+	 
+  EmbeddedContent = ANY;   { Embedded content dummy }
+	 
+  InteractiveContent = ANY;   { Interactive content dummy }
+
+  Transparent = ANY;
+  
+  H_group = ANY;
+  
+  
+  article = ANY;                                      { article dummy }
+  
+  aside = ANY;                                        { aside dummy }
+  
+  section = ANY;                                      { section dummy }
+  
+  nav = ANY;                                          { nav dummy }
+  
+  hgroup = ANY;                                           { hgroup dummy }
+  
+  header = ANY;                                       { header dummy }
+  
+  footer = ANY;                                       { footer dummy }
+  
+  canvas = ANY;                                                 { @@ } { canvas dummy }
+  
+  mark = ANY;                                                   { @@ } { mark dummy }
+  
+  meter (ATTR !meter_value = TEXT; meter_min = TEXT; meter_max = TEXT;
+        { value            min            max }
+	  meter_low = TEXT;   meter_high = TEXT; meter_optimum = TEXT;)
+        { low              high            optimum }
+	= ANY;                                                  { @@ } { meter dummy }
+  
+  audio = ANY;                                                  { @@ } { audio dummy }
+  video = ANY;                                                  { @@ } { video dummy }
+  bdi = ANY;                                                    { @@ } { bdi dummy }
+  command = ANY;                                                { @@ } { command dummy }
+  datalist = ANY;                                               { @@ } { datalist dummy }
+  options = ANY;                                                { dummy }
+  keygen = ANY;                                                 { @@ } { keygen dummy }
+	
+  output = ANY;                                                 { @@ } { output dummy }
+  progress = ANY;                                               { @@ } { progress dummy }
+  time = ANY;                                                   { @@ } { time dummy }
+  wbr = ANY;                                                    { @@ } { wbr dummy }
+  details = ANY;                                                { @@ } { details dummy } 
+  dialog = ANY;                                                 { @@ } { dialog dummy }
+  figure = ANY;                                                 { @@ } { figure dummy }
+  fidureContent1 = ANY;  					{ dummy }
+  fidureContent2 = ANY;  					{ dummy }
+  figcaption = ANY;						{ @@ } { figcaption dummy }
+  summary_elem = ANY;						{ summary dummy }
+  source = ANY;							{ source dummy }	
+  track = ANY;							{ track dummy }
 
 EXCEPT
         HTML:           NoMove, NoResize;

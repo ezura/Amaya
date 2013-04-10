@@ -24,6 +24,7 @@
 
 #include "SVG.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "HTMLactions_f.h"
 #include "init_f.h"
 #include "HTMLedit_f.h"

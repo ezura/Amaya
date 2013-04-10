@@ -278,6 +278,7 @@ void CallbackElemToBeCreated (int ref, int val, char *txt)
               /* does not allow the user to create new type names in well
                  defined XML vocabularies */
               if (strcmp (pSS->SsName, "HTML") &&
+				  strcmp (pSS->SsName, "HTML5") &&
                   strcmp (pSS->SsName, "SVG") &&
                   strcmp (pSS->SsName, "MathML") &&
                   strcmp (pSS->SsName, "TextFile"))

@@ -45,6 +45,7 @@ CSSImageCallbackBlock, *CSSImageCallbackPtr;
 #include "styleparser_f.h"
 #include "SVGbuilder_f.h"
 #include "wxdialogapi_f.h"
+#include "HTML5checker.h"
 
 #define MAX_BUFFER_LENGTH 200
 /*
@@ -77,6 +78,15 @@ static ThotBool      RedisplayBGImage = FALSE; /* TRUE when a BG image is insert
 static ThotBool      DoApply = TRUE;
 static ThotBool      All_sides = FALSE; // TRUE when "boder valus must be displayed
 static char          CSSbuffer[MAX_CSS_LENGTH + 1];
+
+/*----------------------------------------------------------------------
+  IsHTML5
+  check whether the schema of the document is HTML5.
+  ----------------------------------------------------------------------*/
+static ThotBool IsNotHTMLorHTML5(char *sschemaName)
+{
+  return strcmp (sschemaName, "HTML") && strcmp (sschemaName, "HTML5");
+}
 
 
 /*----------------------------------------------------------------------
@@ -6766,7 +6776,7 @@ void  ParseHTMLSpecificStyle (Element el, char *cssRule, Document doc,
       ParsedDoc = doc;
       Error_DocURL = DocumentURLs[doc];
     }
-  isHTML = (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0);
+  isHTML = (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)));
   /* create the context of the Specific presentation driver */
   ctxt = TtaGetSpecificStyleContext (doc);
   if (ctxt == NULL)
@@ -7532,7 +7542,7 @@ static char *ParseGenericSelector (char *selector, char *cssRule,
   elType.ElSSchema = NULL;
   elType.ElTypeNum = 0;
   schemaName = TtaGetSSchemaName(TtaGetDocumentSSchema (doc));
-  if (!strcmp (schemaName, "HTML"))
+  if (!IsNotHTMLorHTML5 (schemaName))
     xmlType = XHTML_TYPE;
   else if (!strcmp (schemaName, "MathML"))
     xmlType = MATH_TYPE;
@@ -7592,7 +7602,7 @@ static char *ParseGenericSelector (char *selector, char *cssRule,
                     {
                       /* the element type concerns an imported nature */
                       schemaName = TtaGetSSchemaName(elType.ElSSchema);
-                      if (!strcmp (schemaName, "HTML"))
+                      if (!IsNotHTMLorHTML5 (schemaName))
                         {
                           if (xmlType == XHTML_TYPE &&
                               DocumentMeta[doc] && DocumentMeta[doc]->xmlformat)
@@ -7801,7 +7811,7 @@ static char *ParseGenericSelector (char *selector, char *cssRule,
                   else
                     {
                       ctxt->attrType[j] = att;
-                      if (att == DummyAttribute && !strcmp (schemaName,"HTML"))
+                      if (att == DummyAttribute && !IsNotHTMLorHTML5 (schemaName))
                         /* it's the "type" attribute for an "input" element.
                            In the tree, it is represented by the element type,
                            not by an attribute */
@@ -7824,7 +7834,7 @@ static char *ParseGenericSelector (char *selector, char *cssRule,
               if (ctxt->attrType[j])
                 {
                   /* check the attribute type */
-                  if (!strcmp (schemaName, "HTML"))
+                  if (!IsNotHTMLorHTML5 (schemaName))
                     xmlType = XHTML_TYPE;
                   else if (!strcmp (schemaName, "MathML"))
                     xmlType = MATH_TYPE;
@@ -7866,7 +7876,7 @@ static char *ParseGenericSelector (char *selector, char *cssRule,
   ctxt->cssSpecificity = specificity;
   /* Get the schema name of the main element */
   schemaName = TtaGetSSchemaName (ctxt->schema);
-  isHTML = (strcmp (schemaName, "HTML") == 0);
+  isHTML = (!IsNotHTMLorHTML5 (schemaName));
   tsch = GetPExtension (doc, ctxt->schema, css, link);
   skippedNL = NewLineSkipped;
   if (DoApply && tsch && cssRule)

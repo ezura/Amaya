@@ -1,24 +1,24 @@
 # Microsoft Developer Studio Project File - Name="amaya" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
-# ** DO NOT EDIT **
+# ** 編集しないでください **
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
 
 CFG=AMAYA - WIN32 DEBUG
-!MESSAGE This is not a valid makefile. To build this project using NMAKE,
-!MESSAGE use the Export Makefile command and run
+!MESSAGE これは有効なﾒｲｸﾌｧｲﾙではありません。 このﾌﾟﾛｼﾞｪｸﾄをﾋﾞﾙﾄﾞするためには NMAKE を使用してください。
+!MESSAGE [ﾒｲｸﾌｧｲﾙのｴｸｽﾎﾟｰﾄ] ｺﾏﾝﾄﾞを使用して実行してください
 !MESSAGE 
 !MESSAGE NMAKE /f "amaya.mak".
 !MESSAGE 
-!MESSAGE You can specify a configuration when running NMAKE
-!MESSAGE by defining the macro CFG on the command line. For example:
+!MESSAGE NMAKE の実行時に構成を指定できます
+!MESSAGE ｺﾏﾝﾄﾞ ﾗｲﾝ上でﾏｸﾛの設定を定義します。例:
 !MESSAGE 
 !MESSAGE NMAKE /f "amaya.mak" CFG="AMAYA - WIN32 DEBUG"
 !MESSAGE 
-!MESSAGE Possible choices for configuration are:
+!MESSAGE 選択可能なﾋﾞﾙﾄﾞ ﾓｰﾄﾞ:
 !MESSAGE 
-!MESSAGE "amaya - Win32 Release" (based on "Win32 (x86) Application")
-!MESSAGE "amaya - Win32 Debug" (based on "Win32 (x86) Application")
+!MESSAGE "amaya - Win32 Release" ("Win32 (x86) Application" 用)
+!MESSAGE "amaya - Win32 Debug" ("Win32 (x86) Application" 用)
 !MESSAGE 
 
 # Begin Project
@@ -57,7 +57,7 @@ LINK32=link.exe
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PreLink_Cmds=copy                  ..\..\wxWidgets\lib\vc_dll\*.dll                  bin\                 	copy                  ..\..\wxWidgets\lib\vc_dll\wxjpeg.lib                  bin\ 
+PreLink_Cmds=copy                       ..\..\wxWidgets\lib\vc_dll\*.dll                       bin\                      	copy                       ..\..\wxWidgets\lib\vc_dll\wxjpeg.lib                       bin\ 
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "amaya - Win32 Debug"
@@ -88,7 +88,7 @@ LINK32=link.exe
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PreLink_Cmds=copy                   ..\..\wxWidgets\lib\vc_dll\*.dll                   bin\                 	copy                  ..\..\wxWidgets\lib\vc_dll\wxjpeg.lib                  bin\ 
+PreLink_Cmds=copy                        ..\..\wxWidgets\lib\vc_dll\*.dll                        bin\                      	copy                       ..\..\wxWidgets\lib\vc_dll\wxjpeg.lib                       bin\ 
 # End Special Build Tool
 
 !ENDIF 
@@ -331,6 +331,18 @@ SOURCE=..\amaya\html2thot.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\amaya\HTML5APP.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\amaya\HTML5checker.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\amaya\HTML5checker.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\amaya\HTMLactions.c
 # End Source File
 # Begin Source File
@@ -347,6 +359,10 @@ SOURCE=..\amaya\HTMLedit.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\amaya\htmlfive2thot.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\amaya\HTMLform.c
 # End Source File
 # Begin Source File
@@ -360,6 +376,10 @@ SOURCE=..\amaya\HTMLimage.c
 # Begin Source File
 
 SOURCE=..\amaya\HTMLpresentation.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\amaya\htmlprevfive2thot.c
 # End Source File
 # Begin Source File
 

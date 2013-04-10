@@ -69,6 +69,25 @@ AmayaPathControl::~AmayaPathControl()
 }
 
 /*----------------------------------------------------------------------
+  GetSSchemaHTMLorHTML5 (Document doc)
+  return  HTML structure schema if the structure schema's is "HTML"
+  return  HTML5 structure schema if the structure schema's is "HTML5"
+  other, return NULL
+  ----------------------------------------------------------------------*/
+static SSchema GetSSchemaHTMLorHTML5 (Document doc)
+{
+	SSchema             sschema;
+	char				*sschemaName;
+	int					docProfile = TtaGetDocumentProfile(doc);
+	sschemaName = TtaGetSSchemaName(TtaGetDocumentSSchema(doc));
+	if (!strcmp(sschemaName, "HTML5") /*|| (docProfile == L_HTML5 || docProfile == L_HTML5_LEGACY)*/)
+	   sschema = TtaGetSSchema ("HTML5", doc);
+	else
+		sschema = TtaGetSSchema ("HTML", doc);
+	return sschema;
+}
+
+/*----------------------------------------------------------------------
   -----------------------------------------------------------------------*/
 void AmayaPathControl::SetSelection(Element elem)
 {
@@ -82,10 +101,12 @@ void AmayaPathControl::SetSelection(Element elem)
   char                buffer[MAX_LENGTH], buff[MAX_LENGTH];
   ThotBool            xtiger = FALSE, file = FALSE;
   Document            doc = TtaGetDocument(elem);
-  SSchema             htmlSSchema = TtaGetSSchema ("HTML", doc);
+  SSchema             htmlSSchema; /* = TtaGetSSchema ("HTML", doc); */
   AttributeType       attrType;
   Attribute           attr;
   const char*         elname;
+
+  htmlSSchema = GetSSchemaHTMLorHTML5 (doc);
   
 #ifdef _WINDOWS
   dc.SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT));

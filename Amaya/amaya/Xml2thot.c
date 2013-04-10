@@ -63,6 +63,7 @@
 #endif /* ANNOTATIONS */
 
 #include "expat.h"
+#include "HTML5checker.h"
 #define NS_SEP '|'
 #define NS_COLON ':'
 
@@ -333,6 +334,39 @@ static void    InitXmlParserContexts (void)
   ctxt->NextParserCtxt = NULL;
   ctxt->SSchemaName = (char *)TtaGetMemory (NAME_LENGTH);
   strcpy ((char *)ctxt->SSchemaName, "HTML");
+  ctxt->UriName = (char *)TtaGetMemory (MAX_URI_NAME_LENGTH);
+  strcpy ((char *)ctxt->UriName, (char *)XHTML_URI);
+  ctxt->XMLSSchema = NULL;
+  ctxt->XMLtype = XHTML_TYPE;
+  ctxt->MapAttribute = (Proc) MapHTMLAttribute;
+  ctxt->MapAttributeValue = (Proc) MapHTMLAttributeValue;
+  ctxt->CheckContext = (Proc) XhtmlCheckContext;
+  ctxt->CheckInsert = (Proc) XhtmlCheckInsert;
+  ctxt->ElementCreated = NULL;
+  ctxt->ElementComplete = (Proc) XhtmlElementComplete;
+  ctxt->AttributeComplete = NULL;
+  ctxt->GetDTDName = NULL;
+  ctxt->UnknownNameSpace = (Proc)UnknownXhtmlNameSpace;
+  ctxt->DefaultLineBreak = TRUE;
+  ctxt->DefaultLeadingSpace = TRUE;   
+  ctxt->DefaultTrailingSpace = TRUE;  
+  ctxt->DefaultContiguousSpace = TRUE;
+  ctxt->PreserveLineBreak = FALSE;    
+  ctxt->PreserveLeadingSpace = FALSE;   
+  ctxt->PreserveTrailingSpace = FALSE;  
+  ctxt->PreserveContiguousSpace = FALSE;
+  XhtmlParserCtxt = ctxt;
+  prevCtxt = ctxt;
+
+  /* create and initialize a context for XHTML5 */
+  ctxt = (XMLparserContext*)TtaGetMemory (sizeof (XMLparserContext));
+  if (prevCtxt == NULL)
+    FirstParserCtxt = ctxt;
+  else
+    prevCtxt->NextParserCtxt = ctxt;
+  ctxt->NextParserCtxt = NULL;
+  ctxt->SSchemaName = (char *)TtaGetMemory (NAME_LENGTH);
+  strcpy ((char *)ctxt->SSchemaName, "HTML5");
   ctxt->UriName = (char *)TtaGetMemory (MAX_URI_NAME_LENGTH);
   strcpy ((char *)ctxt->UriName, (char *)XHTML_URI);
   ctxt->XMLSSchema = NULL;
@@ -925,7 +959,7 @@ static void XmlGetFallbackCharacter (wchar_t wcharRead, char *entityName,
   ptr = (unsigned char*)TtaGetSSchemaName (elType.ElSSchema);
   if (strcmp ((char *)ptr, "MathML") == 0)
     attrType.AttrTypeNum = MathML_ATTR_EntityName;
-  else if (strcmp ((char *)ptr, "HTML") == 0)
+  else if (!IsNotHTMLorHTML5 ((char *)ptr))
     attrType.AttrTypeNum = HTML_ATTR_EntityName;
   else
     attrType.AttrTypeNum = HTML_ATTR_EntityName;
@@ -997,7 +1031,7 @@ static void  XmlCheckInsert (Element *el, Element parent,
     {
       ancestor = parent;
       elType = TtaGetElementType (ancestor);
-      if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         return;
 
       while (ancestor != NULL &&
@@ -1097,7 +1131,7 @@ static void  XhtmlCheckInsert (Element *el, Element  parent,
           ancestor =  TtaGetParent (ancestor);
           ancestorType = TtaGetElementType (ancestor);
         }
-      if (strcmp (TtaGetSSchemaName (ancestorType.ElSSchema), "HTML"))
+      if (IsNotHTMLorHTML5 (TtaGetSSchemaName (ancestorType.ElSSchema)))
         /* parent is not a HTML element */
         return;
 
@@ -1116,7 +1150,7 @@ static void  XhtmlCheckInsert (Element *el, Element  parent,
             {
               profile = TtaGetDocumentProfile (XMLcontext.doc);
               if ((profile == L_Basic || profile == L_Strict) &&
-                  !strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+                  !IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) &&
                   elType.ElTypeNum == HTML_EL_BODY)
                 {
                   snprintf ((char *)msgBuffer, MaxMsgLength,
@@ -1313,7 +1347,7 @@ static void RemoveTrailingSpaces (Element el)
 
   /* create an empty text element after the math element */
   if (CurrentParserCtxt &&
-      strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") == 0)
+      !IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName))
     {
       lastChild = TtaGetLastChild (el);
       if (lastChild)
@@ -1375,7 +1409,7 @@ static ThotBool XmlCloseElement (char *mappedName)
               if (parent != NULL)
                 {
                   parentType = TtaGetElementType (parent);
-                  if ((!strcmp (TtaGetSSchemaName (parentType.ElSSchema), "HTML")) && 
+                  if ((!IsNotHTMLorHTML5 (TtaGetSSchemaName (parentType.ElSSchema))) && 
                       parentType.ElTypeNum == HTML_EL_Pseudo_paragraph)
                     {
                       XMLcontext.lastElement = parent;
@@ -1423,7 +1457,7 @@ static ThotBool XmlCloseElement (char *mappedName)
 	       
               /* Remove the trailing spaces for included pseudo-paragraph */
               elType = TtaGetElementType (el);
-              if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+              if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                 {
                   elType.ElTypeNum = HTML_EL_Pseudo_paragraph;
                   pseudo = el;
@@ -2083,7 +2117,7 @@ static void StartOfXmlStartElement (const char *name)
 
   /* ignore tag <P> within PRE for Xhtml elements */
   if (CurrentParserCtxt != NULL &&
-      (strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") == 0) &&
+      (!IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName)) &&
       (XmlWithinStack (HTML_EL_Preformatted, CurrentParserCtxt->XMLSSchema)) &&
       (strcasecmp (elementName, "p") == 0))
     UnknownElement = TRUE;
@@ -2110,7 +2144,7 @@ static void StartOfXmlStartElement (const char *name)
 	  
           if (mappedName == NULL)
             {
-              if (strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") == 0)
+              if (!IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName))
                 strcpy ((char *)schemaName, "XHTML");
               else
                 strcpy ((char *)schemaName, (char *)CurrentParserCtxt->SSchemaName);
@@ -2225,7 +2259,7 @@ static void EndOfXmlStartElement (char *name)
   if (XMLcontext.lastElement != NULL && currentElementName[0] != EOS)
     {
       elType = TtaGetElementType (XMLcontext.lastElement);
-      if (strcmp ((char *)TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+      if (!IsNotHTMLorHTML5 ((char *)TtaGetSSchemaName (elType.ElSSchema)))
         {
           if (!strcmp ((char *)nameElementStack[stackLevel - 1], "pre")   ||
               !strcmp ((char *)nameElementStack[stackLevel - 1], "style") ||
@@ -2430,7 +2464,7 @@ ThotBool  IsLeadingSpaceUseless (Element lastEl, Document doc,
               lastElType.ElTypeNum == MathML_EL_MathML)
             // keep space after a Math element
             removeLeadingSpaces = FALSE;
-          else if (!strcmp (name, "HTML") &&
+          else if (!IsNotHTMLorHTML5 (name) &&
                    // parent
                    elType.ElTypeNum != HTML_EL_HTML &&
                    elType.ElTypeNum != HTML_EL_HEAD &&
@@ -2443,7 +2477,7 @@ ThotBool  IsLeadingSpaceUseless (Element lastEl, Document doc,
                    elType.ElTypeNum != HTML_EL_Table_ &&
                    elType.ElTypeNum != HTML_EL_Table_row &&
                    // element
-                   !strcmp (s, "HTML") &&
+                   !IsNotHTMLorHTML5 (s) &&
                    (lastElType.ElTypeNum == HTML_EL_Comment_ ||
                     lastElType.ElTypeNum == HTML_EL_ASP_element ||
                     lastElType.ElTypeNum == HTML_EL_XMLPI))
@@ -2456,7 +2490,7 @@ ThotBool  IsLeadingSpaceUseless (Element lastEl, Document doc,
                 {
                   prevType = TtaGetElementType (last);
                   s = TtaGetSSchemaName (prevType.ElSSchema);
-                  if (strcmp (s, "HTML") ||
+                  if (IsNotHTMLorHTML5 (s) ||
                       (prevType.ElTypeNum != HTML_EL_Comment_ &&
 		       prevType.ElTypeNum != HTML_EL_ASP_element &&
 		       prevType.ElTypeNum != HTML_EL_XMLPI &&
@@ -2466,7 +2500,7 @@ ThotBool  IsLeadingSpaceUseless (Element lastEl, Document doc,
                   TtaPreviousSibling (&last);
                 }
             }
-          else if (!strcmp (name, "HTML") &&
+          else if (!IsNotHTMLorHTML5 (name) &&
                    IsCharacterLevelElement (lastEl))
             {
               if (elType.ElTypeNum != HTML_EL_Option_Menu &&
@@ -2635,7 +2669,7 @@ void PutInXmlElement (char *data, int length)
           {
             if (RemoveLeadingSpace &&
                 CurrentParserCtxt->XMLSSchema &&
-                !strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") &&
+                !IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName) &&
                 buffer[i1] == SPACE && strlen (&buffer[i1]) == 1)
               {
                 // avoid to generate an empty pseudo paragraph
@@ -3273,7 +3307,7 @@ static void EndOfAttributeName (char *xmlName)
 
   if (CurrentParserCtxt && !UnknownAttr)
     {
-      if (strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") == 0)
+      if (!IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName))
         EndOfXhtmlAttributeName (attrName,
                                  XMLcontext.lastElement, XMLcontext.doc);
       else
@@ -3373,7 +3407,7 @@ static void EndOfXmlAttributeValue (char *attrValue)
             {
               /* check xml:id attributes */
               name = TtaGetSSchemaName (attrType.AttrSSchema);
-              if (strcmp (name, "HTML") &&
+              if (IsNotHTMLorHTML5 (name) &&
                   strcmp (name, "MathML") &&
                   strcmp (name, "SVG") &&
                   attrType.AttrTypeNum == XML_ATTR_xmlid)
@@ -3432,7 +3466,7 @@ static void       EndOfAttributeValue (unsigned char *attrValue,
         }
       else
         {
-          if (strcmp ((char *)CurrentParserCtxt->SSchemaName, "HTML") == 0)
+          if (!IsNotHTMLorHTML5 ((char *)CurrentParserCtxt->SSchemaName))
             EndOfHTMLAttributeValue ((char *)buffer, lastMappedAttr,
                                      currentAttribute, lastAttrElement,
                                      UnknownAttr, &XMLcontext, TRUE);
@@ -4112,7 +4146,7 @@ void XmlStyleSheetPi (char *PiData, Element piEl)
                       LoadStyleSheet (css_href, XMLcontext.doc, piEl,
                                       css_info, NULL, css_media, FALSE);
                       /* Create a specific attribute for XHTML documents */
-                      if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0)
+                      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                         {
                           attrType.AttrSSchema = elType.ElSSchema;
                           attrType.AttrTypeNum = HTML_ATTR_is_css;
@@ -5078,7 +5112,7 @@ static Element  SetExternalElementType (Element el, Document doc,
   oldStructureChecking = TtaGetStructureChecking (doc);
   TtaSetStructureChecking (FALSE, doc);
 
-  if ((strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0) &&
+  if ((!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema))) &&
       (elType.ElTypeNum == HTML_EL_PICTURE_UNIT))
     {
       /* We are parsing an external picture within a HTML document */
@@ -5125,7 +5159,7 @@ static Element  SetExternalElementType (Element el, Document doc,
             }
         }
     }
-  else if ((strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0) &&
+  else if ((!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema))) &&
            elType.ElTypeNum == HTML_EL_Embed_)
     {
       /* We are parsing an embed element within a HTML document*/
@@ -5140,7 +5174,7 @@ static Element  SetExternalElementType (Element el, Document doc,
             TtaInsertFirstChild (&elemContent, el, doc);
         }
     }
-  else if ((strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") == 0) &&
+  else if ((!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema))) &&
            elType.ElTypeNum == HTML_EL_IFRAME)
     {
       /* We are parsing an iframe element within a HTML document*/
@@ -5230,7 +5264,7 @@ void ParseExternalDocument (char *fileName, char *originalName, Element el,
   if (typeName != NULL &&
       ((strcmp ((char *)typeName, "SVG") == 0) ||
        (strcmp ((char *)typeName, "MathML") == 0) ||
-       (strcmp ((char *)typeName, "HTML") == 0)))
+       (!IsNotHTMLorHTML5 ((char *)typeName))))
     {
       /* We are parsing an external html, svg or mathml document */
       extEl = SetExternalElementType (el, doc, &use_ref);
@@ -5343,7 +5377,7 @@ void ParseExternalDocument (char *fileName, char *originalName, Element el,
 	  
           /* Parse the external file */
           DocumentMeta[externalDoc]->compound = FALSE;
-          if (!strcmp ((char *)typeName, "HTML"))
+          if (!IsNotHTMLorHTML5 ((char *)typeName))
             {
               // Use the html parser as the document could be invalid 
               DocumentMeta[externalDoc]->xmlformat = FALSE;
@@ -5424,13 +5458,13 @@ void ParseExternalDocument (char *fileName, char *originalName, Element el,
                           type);
 
           /* Paste the external document */
-          if (strcmp ((char *)typeName, "HTML") == 0)
+          if (!IsNotHTMLorHTML5 ((char *)typeName))
             {
               /* XHTML documents */
               /* Handle character-level elements which contain block-level elements */
               CheckBlocksInCharElem (externalDoc);
               /* For (X)HTML documents, we paste the BODY element */
-              elType.ElSSchema = TtaGetSSchema ("HTML", externalDoc);
+              elType.ElSSchema = GetSSchemaHTMLorHTML5 (externalDoc);
               elType.ElTypeNum = HTML_EL_HEAD;
               idEl = TtaSearchTypedElement (elType, SearchForward, RootElement);
               TtaDeleteTree (idEl, externalDoc);
@@ -5601,7 +5635,7 @@ ThotBool ParseXmlBuffer (char *xmlBuffer, Element el, ThotBool isclosed,
 
   /* Handle character-level elements which contain block-level elements */
   if ((schemaName != NULL) &&
-      (strcmp ((char *)schemaName, "HTML") == 0))
+      (!IsNotHTMLorHTML5 ((char *)schemaName)))
     {
       TtaSetStructureChecking (FALSE, doc);
       CheckBlocksInCharElem (doc);
@@ -6053,6 +6087,8 @@ void StartXmlParser (Document doc, char *fileName,
       s = TtaGetSSchemaName (DocumentSSchema);
       if (DocumentTypes[doc] == docHTML && strcmp ((char *)s, "HTML"))
         TtaUpdateRootElementType (RootElement, "HTML", doc);
+	  else if ((TtaGetDocumentProfile (doc) == L_HTML5 || TtaGetDocumentProfile (doc) == L_HTML5_LEGACY) && strcmp ((char *)s, "HTML5"))
+        TtaUpdateRootElementType (RootElement, "HTML5", doc);
       else if (DocumentTypes[doc] == docSVG && strcmp ((char *)s, "SVG"))
         TtaUpdateRootElementType (RootElement, "SVG", doc);
       else if (DocumentTypes[doc] == docMath && strcmp ((char *)s, "MathML"))
@@ -6073,6 +6109,11 @@ void StartXmlParser (Document doc, char *fileName,
           ChangeXmlParserContextByDTD ("HTML");
           isXHTML = TRUE;
         }
+	  else if (strcmp ((char *)s, "HTML5") == 0)
+        {
+          ChangeXmlParserContextByDTD ("HTML5");
+          isXHTML = TRUE;
+        }
       else if (strcmp ((char *)s, "SVG") == 0)
         ChangeXmlParserContextByDTD ("SVG");
       else if (strcmp ((char *)s, "MathML") == 0)
@@ -6086,7 +6127,12 @@ void StartXmlParser (Document doc, char *fileName,
           isXml = TRUE;
         }
 #else /* XML_GENERIC */
-      ChangeXmlParserContextByDTD ("HTML");
+
+	  if (strcmp ((char *)s, "HTML5") == 0)
+          ChangeXmlParserContextByDTD ("HTML5");
+	  else
+		  ChangeXmlParserContextByDTD ("HTML");
+
 #endif /* XML_GENERIC */
 
       /* Gets the document charset */
@@ -6147,6 +6193,7 @@ void StartXmlParser (Document doc, char *fileName,
              in the structure schema, one for each type appearing in a
              selector in the User style sheet */
           LoadUserStyleSheet (doc);
+		  /* LoadUserStyleSheetForStructure (doc); */
           TtaSetDisplayMode (doc, dispMode);
           UpdateStyleList (doc, 1);
         }

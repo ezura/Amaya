@@ -1,0 +1,54 @@
+/* This is the default Amaya CSS file */
+article { padding:1px;
+          margin:1px;
+          border-color:red;
+          border-width:3px;
+          border-style:solid; }
+          
+section { padding:1px;
+          margin:1px;
+          border-color:#ff9900;
+          border-width:3px;
+          border-style:solid; }
+          
+nav {     padding:1px;
+          margin:1px;
+          border-color:#cccccc;
+          border-width:3px;
+          border-style:solid; }
+          
+aside {   padding:1px;
+          margin:1px;
+          border-color:#ccccff;
+          border-width:3px;
+          border-style:solid; }
+          
+hgroup {  padding:1px;
+          margin:1px;
+          border-color:yellow;
+          border-width:3px;
+          border-style:solid; }
+
+header {  padding:1px;
+          margin:1px;
+          border-color:green;
+          border-width:3px;
+          border-style:solid; }
+          
+footer {  padding:1px;
+          margin:1px;
+          border-color:#3366ff;
+          border-width:3px;
+          border-style:solid; }
+          
+address { padding:1px;
+          margin:1px;
+          border-color:#ffccff;
+          border-width:3px;
+          border-style:solid; }
+          
+div     { padding:1px;
+          margin:1px;
+          border-color:#ffccff;
+          border-width:3px;
+          border-style:solid; }

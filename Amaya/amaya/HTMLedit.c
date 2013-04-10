@@ -69,6 +69,7 @@ static int          OldHeight;
 #include "XLinkedit_f.h"
 #include "tree.h"
 #include "interface.h"
+#include "HTML5checker.h"
 
 
 #ifdef _WINGUI
@@ -328,7 +329,7 @@ void RemoveLink (Element el, Document doc)
   /* Search the "nature" of the link */
   elType = TtaGetElementType (el);
   s = TtaGetSSchemaName (elType.ElSSchema);
-  if ((strcmp (s, "HTML") == 0) &&
+  if (!IsNotHTMLorHTML5 (s) &&
       (elType.ElTypeNum != HTML_EL_XMLPI))
     {
       /* (X)HTML document, well, we search within a hlink element */
@@ -350,7 +351,7 @@ void RemoveLink (Element el, Document doc)
     }
   else
     {
-      if (strcmp (s, "HTML") == 0)
+      if (!IsNotHTMLorHTML5 (s))
         piNum = HTML_EL_XMLPI;
       else if (strcmp (s, "MathML") == 0)
         piNum = MathML_EL_XMLPI;
@@ -411,7 +412,7 @@ ThotBool CheckMandatory (NotifyAttribute *event)
   attrType.AttrSSchema = event->attributeType.AttrSSchema;
   attrType.AttrTypeNum = event->attributeType.AttrTypeNum;
   elType = TtaGetElementType (event->element);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) &&
       elType.ElTypeNum == HTML_EL_Anchor)
     /* it's an anchor. It should have at least a name or href attribute */
     {
@@ -458,7 +459,7 @@ static Element GenerateInlinechildren (Element el, ElementType newType, Document
 
   /* generate a strong, etc. into the block element? */
   elType = TtaGetElementType (el);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     {
       child = TtaGetFirstChild (el);
       childType = TtaGetElementType (child);
@@ -716,7 +717,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
           if (templateSSchema)
             {
               parent = GetFirstTemplateParentElement(firstSel);
-              elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+              elType.ElSSchema = GetSSchemaHTMLorHTML5 ( doc);
               elType.ElTypeNum = eType;
               if (parent)
                 {
@@ -748,7 +749,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
           parse = (aType == HTML_ATTR_Style_);
           // check if it's within a style element
           parentType.ElSSchema = elType.ElSSchema;
-          if (!strcmp (name, "HTML"))
+          if (!IsNotHTMLorHTML5 (name))
             {
               parentType.ElTypeNum = HTML_EL_STYLE_;
               el = TtaGetTypedAncestor (firstSel, parentType);
@@ -782,7 +783,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
           if (el && parse)
             TtaPasteFromBuffer ((unsigned char*)data, strlen(data),
                                 TtaGetDefaultCharset ());
-          else if (!strcmp(name, "HTML"))
+          else if (!IsNotHTMLorHTML5(name))
             {
               // check if the selection is within the head
               parentType.ElTypeNum = HTML_EL_HEAD;
@@ -835,7 +836,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
               else if ((selpos || firstSel == lastSel) &&
                   (aType == HTML_ATTR_ID || aType == HTML_ATTR_Language ||
                    aType == HTML_ATTR_Class || aType == HTML_ATTR_Style_) &&
-                  !strcmp(name, "HTML") &&
+                  !IsNotHTMLorHTML5(name) &&
                   (elType.ElTypeNum == HTML_EL_Basic_Elem ||
                    elType.ElTypeNum == HTML_EL_Element))
                 {
@@ -847,7 +848,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                   lastSel = el;
                 }
               else if ((selpos || firstSel == lastSel) &&
-                       !strcmp(name, "HTML") &&
+                       !IsNotHTMLorHTML5(name) &&
                        elType.ElTypeNum == HTML_EL_Element)
                 {
                   // this is a temporary element
@@ -861,13 +862,13 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                   done = TRUE; // action done
                 }
               else if (aType == 0 &&
-                       !strcmp(name, "HTML") &&
+                       !IsNotHTMLorHTML5(name) &&
                        !IsCharacterLevelElement (el))
                 {
                   // a block level is selected and a in-line element is required
                   // normalize the selection
                   childType = TtaGetElementType (firstSel);
-                  while (!strcmp(TtaGetSSchemaName (childType.ElSSchema), "HTML") &&
+                  while (!IsNotHTMLorHTML5(TtaGetSSchemaName (childType.ElSSchema)) &&
                          !IsCharacterLevelElement (firstSel))
                     {
                       child = GetNoTemplateChild (firstSel, TRUE);
@@ -880,7 +881,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                         }
                     }
                   elType = TtaGetElementType (lastSel);
-                  while (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+                  while (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) &&
                          !IsCharacterLevelElement (lastSel))
                     {
                       // keep all children
@@ -930,7 +931,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                 {
                   // the whole last element is included
                   enclose = TtaGetParent (lastSel);
-                  if (!strcmp (name, "HTML") &&
+                  if (!IsNotHTMLorHTML5 (name) &&
                       IsCharacterLevelElement (enclose) &&
                       lastSel == TtaGetFirstChild (enclose) &&
                       lastSel == TtaGetLastChild (enclose))
@@ -965,7 +966,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                       && aType != HTML_ATTR_ID)
                     {
                       // generate inline element
-                      while (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+                      while (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) &&
                              !IsCharacterLevelElement (el))
                         {
                           // move down in block element
@@ -980,7 +981,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                     }
                   // remove the current inline element to extend it
                   name = TtaGetSSchemaName (elType.ElSSchema);
-                  if (!strcmp (name, "HTML"))
+                  if (!IsNotHTMLorHTML5 (name))
                     removed = (aType != HTML_ATTR_Style_  &&
                                elType.ElTypeNum == newType.ElTypeNum &&
                                elType.ElSSchema == newType.ElSSchema);
@@ -1005,7 +1006,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                     }
                   lg =  TtaGetElementVolume (el);
                   split = ((el == firstSel || el == lastSel) &&
-                           !strcmp(name, "HTML") &&
+                           !IsNotHTMLorHTML5(name) &&
                            elType.ElTypeNum == HTML_EL_TEXT_UNIT &&
                            ((firstchar > 1 && firstchar <= lg) ||
                             (i > 0 && i <= lg && i >= firstchar)));
@@ -1047,7 +1048,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                       if (el == firstSel && TtaIsLeaf (elType))
                         {
                           parent = TtaGetParent (el);
-                          if (!strcmp (name, "HTML") &&
+                          if (!IsNotHTMLorHTML5 (name) &&
                               IsCharacterLevelElement (parent) &&
                               el == TtaGetFirstChild (parent) &&
                               el == TtaGetLastChild (parent) &&
@@ -1073,7 +1074,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                           if (IsCharacterLevelElement (parent))
                             {
                               // the parent is a in-line element
-                              if (!strcmp (name, "HTML") &&
+                              if (!IsNotHTMLorHTML5 (name) &&
                                   el == TtaGetFirstChild (parent) &&
                                   el == TtaGetLastChild (parent))
                                 {
@@ -1086,7 +1087,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                             }
                         }
 
-                      if (!strcmp(name, "HTML"))
+                      if (!IsNotHTMLorHTML5(name))
                         {
                           if (!selpos && firstSel == lastSel &&
                               (aType == HTML_ATTR_ID || aType == HTML_ATTR_Language ||
@@ -1113,7 +1114,7 @@ ThotBool GenerateInlineElement (int eType, SSchema eSchema, int aType,
                           charlevel = FALSE;
                           skip = TRUE;
                         }
-                      else if (in_line == NULL && !strcmp(name, "HTML"))
+                      else if (in_line == NULL && !IsNotHTMLorHTML5(name))
                         // if a strong, em is requested it should be created
                         doit = (charlevel || aType == 0);
                       else
@@ -1610,7 +1611,7 @@ void SetREFattribute (Element element, Document doc, char *targetURL,
   elType = TtaGetElementType (element);
   attrType.AttrSSchema = elType.ElSSchema;
   s = TtaGetSSchemaName (elType.ElSSchema);
-  isHTML = !strcmp (s, "HTML");
+  isHTML = !IsNotHTMLorHTML5 (s);
   isSVG = !strcmp (s, "SVG");
   isLib = !strcmp (s, "Template");
 
@@ -1905,7 +1906,7 @@ void ChangeTitle (Document doc, View view)
   /* search the Title element */
   el = TtaGetRootElement (doc);
   elType.ElSSchema = TtaGetDocumentSSchema (doc);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     /* it's a HTML document */
     {
       elType.ElTypeNum = HTML_EL_TITLE;
@@ -1966,7 +1967,7 @@ void SetNewTitle (Document doc)
   /* search the Title element */
   el = TtaGetRootElement (doc);
   elType.ElSSchema = TtaGetDocumentSSchema (doc);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     {
       elType.ElTypeNum = HTML_EL_TITLE;
       el = TtaSearchTypedElement (elType, SearchForward, el);
@@ -2046,8 +2047,7 @@ void SelectDestination (Document doc, Element el, ThotBool withUndo,
       TtaSetStatus (doc, 1, TtaGetMessage (AMAYA, AM_SEL_TARGET), NULL);
       TtaClickElement (&targetDoc, &targetEl);
       if (targetDoc != 0)
-        isHTML = !(strcmp (TtaGetSSchemaName (TtaGetDocumentSSchema (targetDoc)),
-                           "HTML"));
+        isHTML = !(IsNotHTMLorHTML5 (TtaGetSSchemaName (TtaGetDocumentSSchema (targetDoc))));
       else
         isHTML = FALSE;
        
@@ -2096,7 +2096,7 @@ void SelectDestination (Document doc, Element el, ThotBool withUndo,
               /* If the anchor has an HREF attribute, put its value in the form */
               elType = TtaGetElementType (el);
               name = TtaGetSSchemaName (elType.ElSSchema);
-              if (!strcmp (name, "HTML"))
+              if (!IsNotHTMLorHTML5 (name))
                 /* it's an HTML element */
                 {
                   attrType.AttrSSchema = elType.ElSSchema;
@@ -2219,7 +2219,7 @@ Attribute GetNameAttr (Document doc, Element selectedElement)
   if (selectedElement)
     {
       elType = TtaGetElementType (selectedElement);
-      HTMLSSchema = TtaGetSSchema ("HTML", doc);
+      HTMLSSchema = GetSSchemaHTMLorHTML5 ( doc);
       attrType.AttrSSchema = HTMLSSchema;
       if (elType.ElSSchema == HTMLSSchema &&
           elType.ElTypeNum == HTML_EL_Anchor)
@@ -2298,10 +2298,10 @@ void CreateTargetAnchor (Document doc, Element el, ThotBool forceID,
   ThotBool            withinHTML, new_;
 
   elType = TtaGetElementType (el);
-  withinHTML = !strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML");
+  withinHTML = !IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema));
 
   /* get a NAME or ID attribute */
-  HTMLSSchema = TtaGetSSchema ("HTML", doc);
+  HTMLSSchema = GetSSchemaHTMLorHTML5 ( doc);
   attrType.AttrSSchema = HTMLSSchema;
   if (withinHTML && (elType.ElTypeNum == HTML_EL_Anchor ||
                      elType.ElTypeNum == HTML_EL_MAP ||
@@ -2474,7 +2474,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
   s = TtaGetSSchemaName (elType.ElSSchema);
   parentType.ElSSchema = elType.ElSSchema;
   parentType.ElTypeNum = HTML_EL_HEAD;
-  if (!strcmp (s, "HTML") && TtaGetTypedAncestor (first, parentType))
+  if (!IsNotHTMLorHTML5 (s) && TtaGetTypedAncestor (first, parentType))
     {
 #ifdef TEMPLATES
       sstempl = TtaGetSSchema ("Template", doc);
@@ -2496,7 +2496,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
   if ((elType.ElTypeNum == HTML_EL_Anchor ||
        elType.ElTypeNum == HTML_EL_MAP ||
        elType.ElTypeNum == HTML_EL_map) &&
-      !strcmp (s, "HTML") &&
+      !IsNotHTMLorHTML5 (s) &&
       first == last)
     {
       /* add an attribute on the current anchor */
@@ -2525,7 +2525,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
   else
     {
       /* check whether the selection is within an anchor */
-      if (!strcmp (s, "HTML") || !strcmp (s, "SVG"))
+      if (!IsNotHTMLorHTML5 (s) || !strcmp (s, "SVG"))
         el = SearchAnchor (doc, first, &attr, !createLink);
       else
         el = NULL;
@@ -2548,7 +2548,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
             {
               elType = TtaGetElementType (el);
               s = TtaGetSSchemaName (elType.ElSSchema);
-              if (!strcmp (s, "HTML"))
+              if (!IsNotHTMLorHTML5 (s))
                 {
                   if (createLink &&
                       elType.ElTypeNum != HTML_EL_TEXT_UNIT &&
@@ -2617,7 +2617,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
                 {
                   elType = TtaGetElementType (first);
                   if (first == last && firstChar == 0 && lastChar == 0 &&
-                      createLink && strcmp (s, "HTML") && strcmp (s, "SVG"))
+                      createLink && IsNotHTMLorHTML5 (s) && strcmp (s, "SVG"))
                     /* a single element is selected and it's not a HTML elem
                        nor a SVG element nor a character string */
                     {
@@ -2654,7 +2654,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
                 {
                   elType = TtaGetElementType (ancestor);
                   s = TtaGetSSchemaName (elType.ElSSchema);
-                  if (!strcmp (s, "HTML") && elType.ElTypeNum == HTML_EL_Anchor)
+                  if (!IsNotHTMLorHTML5 (s) && elType.ElTypeNum == HTML_EL_Anchor)
                     ok = FALSE;
                 }
               if (ok)
@@ -2664,7 +2664,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
                     {
                       elType = TtaGetElementType (ancestor);
                       s = TtaGetSSchemaName (elType.ElSSchema);
-                      if (!strcmp (s, "HTML") &&
+                      if (!IsNotHTMLorHTML5 (s) &&
                           elType.ElTypeNum == HTML_EL_Anchor)
                         ok = FALSE;
                     }
@@ -2699,7 +2699,7 @@ void CreateAnchor (Document doc, View view, ThotBool createLink)
                       elType = TtaGetElementType (anchor);
                       s = TtaGetSSchemaName (elType.ElSSchema);
                       while (anchor &&
-                             (elType.ElTypeNum != HTML_EL_Anchor || strcmp (s, "HTML")) &&
+                             (elType.ElTypeNum != HTML_EL_Anchor || IsNotHTMLorHTML5 (s)) &&
                              (elType.ElTypeNum != SVG_EL_a || strcmp (s, "SVG")))
                       {
                         anchor = TtaGetParent (anchor);
@@ -2783,7 +2783,7 @@ ThotBool MakeUniqueName (Element el, Document doc, ThotBool doIt,
   attrIDType.AttrSSchema = elType.ElSSchema;
   checkID = checkNAME = checkXMLID = FALSE;
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp(name, "HTML"))
+  if (!IsNotHTMLorHTML5(name))
     {
       attrIDType.AttrTypeNum = HTML_ATTR_xmlid;
       attrID = TtaGetAttribute (el, attrIDType);
@@ -2887,7 +2887,7 @@ ThotBool MakeUniqueName (Element el, Document doc, ThotBool doIt,
                 {
                   /* copy the element Label into the NAME attribute */
                   TtaSetAttributeText (attr, value, el, doc);
-                  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+                  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)) &&
                       elType.ElTypeNum == HTML_EL_MAP)
                     /* it's a MAP element */
                     {
@@ -3042,7 +3042,7 @@ void CreateRemoveIDAttribute (char *elName, Document doc, ThotBool createID,
   attrType.AttrTypeNum = 0;
 #endif /* XML_GENERIC */
   schema_name = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp (schema_name, "HTML"))
+  if (!IsNotHTMLorHTML5 (schema_name))
     {
       /* exception handling... we can't add an ID attribute everywhere
          in HTML documents */
@@ -3168,7 +3168,7 @@ void CheckPseudoParagraph (Element el, Document doc)
   SSchema               htmlSchema;
 
   elType = TtaGetElementType (el);
-  htmlSchema = TtaGetSSchema ("HTML", doc);
+  htmlSchema = GetSSchemaHTMLorHTML5 ( doc);
   if (!htmlSchema || elType.ElSSchema != htmlSchema)
     /* it's not an HTML element */
     return;
@@ -3323,7 +3323,7 @@ ThotBool ElementWillBeDeleted (NotifyElement *event)
 
   elType = TtaGetElementType (event->element);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (!strcmp (name, "HTML") &&
+  if (!IsNotHTMLorHTML5 (name) &&
       (elType.ElTypeNum == HTML_EL_TEXT_UNIT ||
        elType.ElTypeNum == HTML_EL_Inserted_Text))
     {
@@ -3364,7 +3364,7 @@ void ElementDeleted (NotifyElement *event)
 
   elType = TtaGetElementType (event->element);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (strcmp (name, "HTML"))
+  if (IsNotHTMLorHTML5 (name))
     return;
   // it could be the parent of a deleted table
   CheckDeleteParentTable (event->element);
@@ -3577,7 +3577,7 @@ ThotBool ElementOKforProfile (Element el, Document doc)
   /* handle only HTML elements */
   elType = TtaGetElementType (el);
   profile = TtaGetDocumentProfile (doc);
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     {
       /* it's an element from the HTML namespace */
       if (profile != L_Other)
@@ -3719,7 +3719,7 @@ void CheckPastedElement (Element el, Document doc, int info, int position,
 
   elType = TtaGetElementType (el);
   name = TtaGetSSchemaName (elType.ElSSchema);
-  if (elType.ElTypeNum != HTML_EL_Paragraph || strcmp (name, "HTML") ||
+  if (elType.ElTypeNum != HTML_EL_Paragraph || IsNotHTMLorHTML5 (name) ||
       !WithinLastPastedCell (el))
     /* Check pseudo-paragraphs */
     CheckPseudoParagraph (el, doc);
@@ -3733,7 +3733,7 @@ void CheckPastedElement (Element el, Document doc, int info, int position,
     MakeUniqueName (el, doc, TRUE, TRUE);
 
   anchor = NULL;
-  if (!strcmp (name, "HTML"))
+  if (!IsNotHTMLorHTML5 (name))
     {
       if (info == 0 && elType.ElTypeNum == HTML_EL_Anchor)
         anchor = el;
@@ -4052,7 +4052,7 @@ void CheckNewLines (NotifyOnTarget *event)
         {
           elType = TtaGetElementType (ancestor);
           name = TtaGetSSchemaName (elType.ElSSchema);
-          if (!strcmp(name, "HTML"))
+          if (!IsNotHTMLorHTML5(name))
             {
               if (elType.ElTypeNum == HTML_EL_STYLE_ ||
                   elType.ElTypeNum == HTML_EL_SCRIPT_ ||
@@ -4573,7 +4573,7 @@ void UpdateAttrNAME (NotifyAttribute * event)
     {
       // check valid value
       elType = TtaGetElementType (event->element);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML") &&
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)) &&
           (elType.ElTypeNum == HTML_EL_Anchor ||
            elType.ElTypeNum == HTML_EL_MAP ||
            elType.ElTypeNum == HTML_EL_map))
@@ -4803,7 +4803,7 @@ ThotBool AttrWidthDelete (NotifyAttribute *event)
   StoreWidth (event);
   el = event->element;
   elType = TtaGetElementType (el);
-  if (elType.ElSSchema == TtaGetSSchema ("HTML", event->document))
+  if (elType.ElSSchema == GetSSchemaHTMLorHTML5 ( event->document))
     {
       if (elType.ElTypeNum == HTML_EL_COL ||
           elType.ElTypeNum == HTML_EL_COLGROUP)
@@ -4853,7 +4853,7 @@ void AttrWidthModified (NotifyAttribute *event)
   CreateAttrWidthPercentPxl (buffer, event->element, event->document,
                              OldWidth);
   elType = TtaGetElementType (event->element);
-  if (elType.ElSSchema == TtaGetSSchema ("HTML", event->document) &&
+  if (elType.ElSSchema == GetSSchemaHTMLorHTML5 ( event->document) &&
        (elType.ElTypeNum == HTML_EL_COL ||
         elType.ElTypeNum == HTML_EL_COLGROUP))
     TransmitWidthToColhead (event->element, event->document, buffer, -1);
@@ -5098,7 +5098,7 @@ ThotBool GlobalAttrInMenu (NotifyAttribute * event)
     return FALSE;
 #endif /* TEMPLATES */
     
-    if (strcmp (TtaGetSSchemaName (elType.ElSSchema),"HTML"))
+    if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
       /* it's not a HTML element */
       return TRUE;
     else
@@ -5276,7 +5276,7 @@ void SetOnOffEmphasis (Document document, View view)
   if (selectedEl)
     {
       elType = TtaGetElementType (selectedEl);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* it's a HTML element */
         SetCharFontOrPhrase (document, HTML_EL_Emphasis);
       else if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "MathML"))
@@ -5302,7 +5302,7 @@ void SetOnOffStrong (Document document, View view)
   if (selectedEl)
     {
       elType = TtaGetElementType (selectedEl);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* it's a HTML element */
         SetCharFontOrPhrase (document, HTML_EL_Strong);
       else if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "MathML"))
@@ -5346,7 +5346,7 @@ void SetOnOffCode (Document document, View view)
   if (selectedEl)
     {
       elType = TtaGetElementType (selectedEl);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* it's a HTML element */
         SetCharFontOrPhrase (document, HTML_EL_Code);
       else if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "MathML"))
@@ -5516,7 +5516,7 @@ void CreateSpan (Document document, View view)
   if (selectedEl)
     {
       elType = TtaGetElementType (selectedEl);
-      if (!strcmp(TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5(TtaGetSSchemaName (elType.ElSSchema)))
         /* it's a HTML element */
         SetCharFontOrPhrase (document, HTML_EL_Span);
     }
@@ -5552,7 +5552,7 @@ Element SearchAnchor (Document doc, Element element, Attribute *HrefAttr,
       attr = NULL;
       elType = TtaGetElementType (ancestor);
       s = TtaGetSSchemaName (elType.ElSSchema);
-      if (!strcmp (s, "HTML"))
+      if (!IsNotHTMLorHTML5 (s))
         /* the current element belongs to the HTML namespace */
         {
           attrType.AttrSSchema = elType.ElSSchema;

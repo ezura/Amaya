@@ -33,6 +33,7 @@
 
 #include "SVG.h"
 #include "HTML.h"
+#include "HTML5.h"
 #include "XLink.h"
 
 #include "anim_f.h"
@@ -56,6 +57,7 @@
 #include "styleparser_f.h"
 #include "registry_wx.h"
 #include "wxdialogapi_f.h"
+#include "HTML5checker.h"
 
 static ThotBool   PaletteDisplayed = FALSE;
 static ThotBool   SVG_root_copied = FALSE;
@@ -137,7 +139,7 @@ ThotBool ExportForeignObject (NotifyElement *event)
   while (child)
     {
       elType = TtaGetElementType (child);
-      if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         /* child is an HTML element */
         {
           attrType.AttrTypeNum = SVG_ATTR_Namespace;
@@ -2177,7 +2179,7 @@ void CreateGraphicElement (Document doc, View view, int entry)
         {
           selType = TtaGetElementType (first);
           /* Allow an SVG element only within an HTML or a generic XML element */
-          if (strcmp (TtaGetSSchemaName (selType.ElSSchema), "HTML"))
+          if (IsNotHTMLorHTML5 (TtaGetSSchemaName (selType.ElSSchema)))
             {
               /* It's not an HTML element. Is it a generic XML element ? */
               if (!TtaIsXmlSSchema (selType.ElSSchema))
@@ -2861,8 +2863,11 @@ void CreateGraphicElement (Document doc, View view, int entry)
           if (entry == 9)
             {
               /* the document is supposed to be HTML */
-              childType.ElSSchema = TtaNewNature (doc, docSchema, NULL, "HTML",
-                                                  "HTMLP");
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+				childType.ElSSchema = TtaNewNature (doc, docSchema, NULL, "HTML", "HTML5P");
+			  else
+				  childType.ElSSchema = TtaNewNature (doc, docSchema, NULL, "HTML", "HTMLP");
+
               childType.ElTypeNum = HTML_EL_Division;
               child = TtaNewTree (doc, childType, "");
 

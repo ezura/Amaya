@@ -2336,7 +2336,7 @@ void DisplayBorders (PtrBox box, PtrAbstractBox pFrom, int frame,
   from = pFrom->AbBox;
   if (from->BxType == BoTable && pFrom->AbElement &&
       pFrom->AbElement->ElStructSchema &&
-      !strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML"))
+      (!strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML") || !strcmp (pFrom->AbElement->ElStructSchema->SsName, "HTML5")))
     return;
   /* position in the frame */
 #ifdef _GL

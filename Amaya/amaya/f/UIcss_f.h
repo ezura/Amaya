@@ -14,6 +14,7 @@ extern ThotBool LoadRemoteStyleSheet ( char *url,
                                        char *localfile );
 extern void InitUserStyleSheet ( char *url );
 extern void LoadUserStyleSheet ( Document doc );
+extern void LoadUserStyleSheetForStructure ( Document doc );
 extern void EmbedStyleSheets ( Document docsrc,
                                Document docdest );
 extern void AddStyle ( char *url,
@@ -131,6 +132,7 @@ extern ThotBool LoadRemoteStyleSheet ( char *url,
                                          char *localfile );
 extern void InitUserStyleSheet ( char *url );
 extern void LoadUserStyleSheet ( Document doc );
+extern void LoadUserStyleSheetForStructure ( Document doc );
 extern void EmbedStyleSheets ( Document docsrc,
                                  Document docdest );
 extern void AddStyle ( char *url,

@@ -1,7 +1,7 @@
 APPLICATION EDITOR;
 
 USES
-	HTML, TextFile
+	HTML, TextFile, HTML5
 #ifdef XML_GENERIC
        , XML
 #endif
@@ -145,9 +145,9 @@ MENUS
 	Views button:BShowLinks -> ShowLinks;
 	Views button:BShowAlternate -> ShowAlternate;
 	Views button:BShowToC -> ShowToC;
+	Views toggle:TShowSections -> ShowSections;
 	Views toggle:TSplitHorizontally -> SplitHorizontally;
 	Views toggle:TSplitVertically -> SplitVertically;
-	Views Separator;
 	Views button:BDocInfo -> DocumentInfo;
 	Views button:BShowLogFile -> MenuShowLogFile;
 	Views Separator;
@@ -279,6 +279,15 @@ MENUS
 	Types.StructTypes button:BNoScript -> CreateNOSCRIPT;
 
 	Types button:BDivision -> CreateDivision icon:XHTML_Div.png;
+	
+	Types.Sections button:BArticle -> CreateArticle icon:XHTML_Div.png;
+	Types.Sections button:BSection -> CreateArticle icon:XHTML_Div.png;
+	Types.Sections button:BHeader -> CreateHeader icon:XHTML_Div.png;
+	Types.Sections button:BFooter -> CreateFooter icon:XHTML_Div.png;
+	Types.Sections button:BNav -> CreateNav icon:XHTML_Div.png;
+	Types.Sections button:BHgroup -> CreateHgroup icon:XHTML_Div.png;
+	Types.Sections button:BAside -> CreateAside icon:XHTML_Div.png;
+	
 	Types button:BAddress -> CreateAddress;
 	Types button:BBlockQuote -> CreateBlockQuote icon:XHTML_quote.png;
 	Types button:BIFrame -> CreateIFrame;

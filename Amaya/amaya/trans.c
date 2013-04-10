@@ -11,6 +11,7 @@
  *
  */
 
+
 /* Included headerfiles */
 #undef THOT_EXPORT
 #define THOT_EXPORT extern
@@ -43,6 +44,7 @@
 #include "MathML.h"
 #include "transparse_f.h"
 #include "MathMLbuilder_f.h"
+#include "HTML5checker.h"
 
 #ifdef _WINGUI
 #include "wininclude.h"
@@ -244,7 +246,7 @@ static void BuildStructureTree (Element elem, Document doc, StructureTree father
   else
     added = father;
   TtaFreeMemory (tag);
-  if ((strcmp ((char *)TtaGetSSchemaName (elemType.ElSSchema), "HTML") != 0) ||
+  if ((IsNotHTMLorHTML5 ((char *)TtaGetSSchemaName (elemType.ElSSchema))) ||
       (elemType.ElTypeNum != HTML_EL_Comment_ && 
        elemType.ElTypeNum != HTML_EL_Invalid_element))
     {
@@ -772,10 +774,27 @@ static ThotBool ExportSubTree (Element subTree, Document doc)
     TtaExportTree (subTree, doc, tmpfilename, "AnnotT");
   else if (strcmp (name, "HTML") == 0)
     {
+	  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+	  {
+		  if (DocumentMeta[doc] && DocumentMeta[doc]->xmlformat)
+			TtaExportTree (subTree, doc, tmpfilename, "HTML5TX");
+		  else
+			TtaExportTree (subTree, doc, tmpfilename, "HTML5T");
+	  }
+	  else
+	  {
+		  if (DocumentMeta[doc] && DocumentMeta[doc]->xmlformat)
+			TtaExportTree (subTree, doc, tmpfilename, "HTMLTX");
+		  else
+			TtaExportTree (subTree, doc, tmpfilename, "HTMLT");
+	  }
+    }
+  else if (strcmp (name, "HTML5") == 0)
+    {
       if (DocumentMeta[doc] && DocumentMeta[doc]->xmlformat)
-        TtaExportTree (subTree, doc, tmpfilename, "HTMLTX");
+        TtaExportTree (subTree, doc, tmpfilename, "HTML5TX");
       else
-        TtaExportTree (subTree, doc, tmpfilename, "HTMLT");
+        TtaExportTree (subTree, doc, tmpfilename, "HTML5T");
     }
   else
     TtaExportTree (subTree, doc, tmpfilename, "XMLT");
@@ -950,10 +969,10 @@ ThotBool *selectionDone)
           if (elType.ElSSchema &&
               (elType.ElTypeNum == HTML_EL_Paragraph ||
                elType.ElTypeNum == HTML_EL_Pseudo_paragraph) &&
-              !strcmp (TtaGetSSchemaName(elType.ElSSchema), "HTML") &&
+              !IsNotHTMLorHTML5 (TtaGetSSchemaName(elType.ElSSchema)) &&
               typeEl.ElSSchema &&
               typeEl.ElTypeNum == HTML_EL_Pseudo_paragraph &&
-              !strcmp (TtaGetSSchemaName(typeEl.ElSSchema), "HTML"))
+              !IsNotHTMLorHTML5 (TtaGetSSchemaName(typeEl.ElSSchema)))
             {
               // merge with the previous paragraph
               newEl = NULL;
@@ -975,7 +994,7 @@ ThotBool *selectionDone)
                     }
                   if (typeEl.ElSSchema &&
                       typeEl.ElTypeNum == HTML_EL_Pseudo_paragraph &&
-                      !strcmp (TtaGetSSchemaName(typeEl.ElSSchema), "HTML"))
+                      !IsNotHTMLorHTML5 (TtaGetSSchemaName(typeEl.ElSSchema)))
                     {
                       // move children
                         child =  TtaGetLastChild (courEl);
@@ -1812,7 +1831,7 @@ static void ApplyTransformation (strMatch *sm, Document doc)
   Attribute            attr;
   AttributeType        attrType;
   SearchDomain         domain;
-  ParserData           context = {0, UTF_8, 0, NULL, 0, FALSE, FALSE, FALSE, FALSE, FALSE};
+  ParserData           context = {0, UTF_8, 0, NULL, 0, FALSE, FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, NULL};
   DisplayMode          oldDisplayMode;
   strGenStack         *stack;
   strMatchChildren    *child;
@@ -1933,7 +1952,7 @@ static void ApplyTransformation (strMatch *sm, Document doc)
                   TtaSetStructureChecking (TRUE, doc);
                 } 
             }
-          else if (!strcmp (name, "HTML"))
+          else if (!IsNotHTMLorHTML5 (name))
             {
               /* disable the structure checking */
               TtaSetStructureChecking (FALSE, doc);
@@ -1957,7 +1976,7 @@ static void ApplyTransformation (strMatch *sm, Document doc)
           else
             myFirstSelect = TtaGetFirstChild (myFirstSelect);
 
-          if (strcmp ((char *)TtaGetSSchemaName (sch), "HTML") == 0)
+          if (!IsNotHTMLorHTML5 ((char *)TtaGetSSchemaName (sch)))
             {
               /* displaying the images */
               attrType.AttrSSchema = sch;
@@ -1986,7 +2005,7 @@ static void ApplyTransformation (strMatch *sm, Document doc)
           /* or setting the selction to the specified node */
           elType = TtaGetElementType (myFirstSelect);
           attrType.AttrSSchema = elType.ElSSchema;
-          if (!strcmp ((char *)TtaGetSSchemaName (attrType.AttrSSchema), "HTML"))
+          if (!IsNotHTMLorHTML5 ((char *)TtaGetSSchemaName (attrType.AttrSSchema)))
             attrType.AttrTypeNum = HTML_ATTR_Ghost_restruct;
           else if (!strcmp ((char *)TtaGetSSchemaName (attrType.AttrSSchema), "MathML"))
             attrType.AttrTypeNum = MathML_ATTR_Ghost_restruct;
@@ -2122,7 +2141,7 @@ static ThotBool CheckSelectionLevel (Document doc)
              /* all selected elements are selected? */
              nextLast == NULL && prevFirst == NULL &&
              /* it's not the HTML element? */
-             (!strcmp ((char *)TtaGetSSchemaName (elType.ElSSchema), "HTML") ||
+             (!IsNotHTMLorHTML5 ((char *)TtaGetSSchemaName (elType.ElSSchema)) ||
               elType.ElTypeNum != HTML_EL_HTML))
         {
           maxSelDepth++;

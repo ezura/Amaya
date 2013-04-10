@@ -999,14 +999,14 @@ void NewContent (PtrAbstractBox pAb)
               /* special treatments for id, name and accesskey attributes */
               name = pAttr->AeAttrSSchema->SsAttribute->TtAttr[pAttr->AeAttrNum - 1]->AttrName;
               if (!strcmp (name, "accesskey") &&
-                  !strcmp (pAttr->AeAttrSSchema->SsName, "HTML"))
+                  (!strcmp (pAttr->AeAttrSSchema->SsName, "HTML") || !strcmp (pAttr->AeAttrSSchema->SsName, "HTML5")))
                 /* only one character is allowed */
                 pAb->AbText->BuContent[1] = EOS;
               CopyTextToText (pAb->AbText, pNewAttr->AeAttrText, &len);
               if (!strcmp (name, "id") ||
                   !strcmp (name, "xml:id") ||
                   (!strcmp (name, "name") &&
-                   !strcmp (pAttr->AeAttrSSchema->SsName, "HTML")))
+                   (!strcmp (pAttr->AeAttrSSchema->SsName, "HTML") || !strcmp (pAttr->AeAttrSSchema->SsName, "HTML5"))))
                 TtaIsValidID ((Attribute)pNewAttr, TRUE);
               /* the Abstract box will be regerated by AttachAttrWithValue */
               ClearText (pAb->AbText);

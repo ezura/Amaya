@@ -27,6 +27,7 @@ RULES
         Use XLinkT for XLink;
         Use SVGT for SVG;
         Use HTMLTX for HTML;
+        Use HTML5TX for HTML5;
         Use TemplateT for Template;
         create SOT;
         Create 'math';

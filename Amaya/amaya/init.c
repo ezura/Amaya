@@ -12,6 +12,7 @@
  *         R. Guetari (W3C/INRIA) - Windows version
  */
 
+
 /* Included headerfiles */
 
 #include "wx/wx.h"
@@ -149,6 +150,7 @@ static int          Loading_method = CE_INIT;
 #include "davlibRequests_f.h"
 #include "davlibUI_f.h"
 #endif /* DAV */
+#include "HTML5checker.h"
 
 extern void InitMathML ();
 extern void InitTemplates ();
@@ -495,7 +497,7 @@ const char * DocumentTypeString (Document document)
         case L_Xhtml11:
           if (TtaGetDocumentExtraProfile(document) == L_RDFa)
             result = "XHTML+RDFa";
-	  else
+	    else
             result = "XHTML 1.1";
           break;
         case L_Basic:
@@ -516,6 +518,10 @@ const char * DocumentTypeString (Document document)
         case L_MathML:
           result = "MathML";
           break;
+		case L_HTML5:
+		case L_HTML5_LEGACY:
+			result = "HTML5";
+			break;
         }
     }
 
@@ -1696,6 +1702,14 @@ void SetWindowTitle (Document sourceDoc, Document targetDoc, View view)
       elType.ElTypeNum = HTML_EL_TITLE;
       title = TtaSearchTypedElement (elType, SearchForward, root);
     }
+  else if (!strcmp (TtaGetSSchemaName (docSSchema), "HTML5"))
+    /* sourceDoc is a HTML5 document */
+    {
+      /* search the Title element in sourceDoc */
+      elType.ElSSchema = docSSchema;
+      elType.ElTypeNum = HTML_EL_TITLE;
+      title = TtaSearchTypedElement (elType, SearchForward, root);
+    }
 #ifdef _SVG
   else if (!strcmp (TtaGetSSchemaName (docSSchema), "SVG"))
     {
@@ -2085,6 +2099,19 @@ void OpenNew (Document document, View view, int docType, int docProfile)
       /* will scan html documents */
       strcpy (ScanFilter, "*.*htm*");
     }
+  else if (NewDocType == docHTML5)
+    {
+      s = TtaGetEnvString ("XHTML_Profile");
+      compound = TtaGetMessage (AMAYA, AM_COMPOUND_DOCUMENT);
+      if (s && compound && !strcmp (s, compound))
+        strcat (name,".xml");
+      else
+        strcat (name,".html");
+        InitOpenDocForm (document, view, name,
+                         TtaGetMessage (LIB, TMSG_BUTTON_NEW), docHTML5);
+      /* will scan html documents */
+      strcpy (ScanFilter, "*.*htm*");
+    }
   else if (NewDocType == docMath)
     {
       /* will scan html documents */
@@ -2295,17 +2322,34 @@ void AddDirAttributeToDocEl (Document doc)
   Element root;
   Attribute     attr;
   AttributeType attrType;
+  SSchema       docSSchema;
 
   root = TtaGetMainRoot (doc);
   if (root)
     {
-      attrType.AttrSSchema =  TtaGetSSchema ("HTML", doc);
-      if (!attrType.AttrSSchema)
-        return;
-      attrType.AttrTypeNum = HTML_ATTR_dir;
-      attr = TtaNewAttribute (attrType);
-      TtaAttachAttribute (root, attr, doc);
-      TtaSetAttributeValue (attr, HTML_ATTR_dir_VAL_ltr_, root, doc);
+      docSSchema = TtaGetDocumentSSchema (doc);
+      if (!strcmp (TtaGetSSchemaName (docSSchema), "HTML"))
+        {
+		  /* HTML document */
+		  attrType.AttrSSchema =  TtaGetSSchema ("HTML", doc);
+		  if (!attrType.AttrSSchema)
+			return;
+		  attrType.AttrTypeNum = HTML_ATTR_dir;
+		  attr = TtaNewAttribute (attrType);
+		  TtaAttachAttribute (root, attr, doc);
+		  TtaSetAttributeValue (attr, HTML_ATTR_dir_VAL_ltr_, root, doc);
+        }
+      else if (!strcmp (TtaGetSSchemaName (docSSchema), "HTML5"))
+        {
+		  /* HTML5 document */
+		  attrType.AttrSSchema =  TtaGetSSchema ("HTML5", doc);
+		  if (!attrType.AttrSSchema)
+			return;
+		  attrType.AttrTypeNum = HTML_ATTR_dir;
+		  attr = TtaNewAttribute (attrType);
+		  TtaAttachAttribute (root, attr, doc);
+		  TtaSetAttributeValue (attr, HTML_ATTR_dir_VAL_ltr_, root, doc);
+		}
     }
 }
 /*----------------------------------------------------------------------
@@ -2831,8 +2875,13 @@ Document InitDocAndView (Document oldDoc, ThotBool replaceOldDoc, ThotBool inNew
   else if (docType == docXml)
     doc = TtaInitDocument ("XML", docname, CurrentNameSpace, requested_doc);
 #endif /* XML_GENERIC */
+ /* else if (docType == docHTML5)
+    doc = TtaInitDocument ("HTML5", docname, CurrentNameSpace, requested_doc);*/
   else
-    doc = TtaInitDocument ("HTML", docname, CurrentNameSpace, requested_doc);
+	if (profile == L_HTML5 || profile == L_HTML5_LEGACY)
+      doc = TtaInitDocument ("HTML5", docname, CurrentNameSpace, requested_doc);
+	else
+	  doc = TtaInitDocument ("HTML", docname, CurrentNameSpace, requested_doc);
   if (doc >= DocumentTableLength)
     {
       TtaCloseDocument (doc);
@@ -2871,12 +2920,33 @@ Document InitDocAndView (Document oldDoc, ThotBool replaceOldDoc, ThotBool inNew
         TtaSetPSchema (doc, "XMLP");
 #endif /* XML_GENERIC */
        /* @@ shouldn't we have a Color and BW case for annots too? */
-      else
+      else if (docType == docHTML && (profile == L_HTML5 || profile == L_HTML5_LEGACY))
         {
           if (TtaGetScreenDepth () > 1)
-            TtaSetPSchema (doc, "HTMLP");
+            TtaSetPSchema (doc, "HTML5P");
           else
-            TtaSetPSchema (doc, "HTMLPBW");
+            TtaSetPSchema (doc, "HTML5PBW");
+          /* set attribute dir on the Document element. */
+          AddDirAttributeToDocEl (doc);
+        }
+      else
+        {
+
+
+		  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+		  {
+			  if (TtaGetScreenDepth () > 1)
+				TtaSetPSchema (doc, "HTML5P");
+			  else
+				TtaSetPSchema (doc, "HTML5PBW");
+		  }
+		  else
+		  {
+			  if (TtaGetScreenDepth () > 1)
+				TtaSetPSchema (doc, "HTMLP");
+			  else
+				TtaSetPSchema (doc, "HTMLPBW");
+		  }
           /* set attribute dir on the Document element. */
           AddDirAttributeToDocEl (doc);
         }
@@ -3418,10 +3488,25 @@ Document LoadDocument (Document doc, char *pathname,
                 }
               else
                 {
-                  /* it's an HTML document */
-                  docType = docHTML;
-                  if (docProfile == L_Other)
-                    docProfile = L_Transitional;
+				  if (docProfile == L_HTML5)
+				  {
+					  /* TODO: docHTML5 */
+					  docType = docHTML;
+					  docProfile = L_HTML5;
+				  }
+				  else if (docProfile == L_HTML5_LEGACY)
+				  {
+					  /* TODO: docHTML5 */
+					  docType = docHTML;
+					  docProfile = L_HTML5_LEGACY;
+				  }
+				  else 
+				  {
+					  /* it's an HTML document */
+					  docType = docHTML;
+					  if (docProfile == L_Other)
+						docProfile = L_Transitional;
+				  }
                 }
               unknown = FALSE;
             }
@@ -3767,6 +3852,8 @@ Document LoadDocument (Document doc, char *pathname,
               TtaFileCopy (localdoc, s);
               /* initialize a new CSS context */
               if (UserCSS && !strcmp (pathname, UserCSS))
+                AddCSS (newdoc, 0, CSS_USER_STYLE, CSS_ALL, NULL, s, NULL);
+			  if (UserCSSForStr && !strcmp (pathname, UserCSSForStr))
                 AddCSS (newdoc, 0, CSS_USER_STYLE, CSS_ALL, NULL, s, NULL);
               else
                 AddCSS (newdoc, 0, CSS_EXTERNAL_STYLE, CSS_ALL, pathname, s, NULL);
@@ -4380,15 +4467,27 @@ void ShowSource (Document doc, View view)
           if (DocumentTypes[doc] == docLibrary ||
               DocumentTypes[doc] == docHTML)
             {
-              if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
-                TtaExportDocumentWithNewLineNumbers (doc, localFile,
-                                                     "HTMLT11", FALSE);
-              else if (DocumentMeta[doc]->xmlformat)
-                TtaExportDocumentWithNewLineNumbers (doc, localFile,
-                                                     "HTMLTX", FALSE);
-              else
-                TtaExportDocumentWithNewLineNumbers (doc, localFile,
-                                                     "HTMLT", FALSE);
+			  if (TtaGetDocumentProfile(doc) == L_HTML5 || TtaGetDocumentProfile(doc) == L_HTML5_LEGACY)
+			  {
+				  if (DocumentMeta[doc]->xmlformat)
+					TtaExportDocumentWithNewLineNumbers (doc, localFile,
+														 "HTML5TX", FALSE);
+				  else
+					TtaExportDocumentWithNewLineNumbers (doc, localFile,
+														 "HTML5T", FALSE);
+			  }
+			  else
+			  {
+				  if (TtaGetDocumentProfile (doc) == L_Xhtml11 || TtaGetDocumentProfile (doc) == L_Basic)
+					TtaExportDocumentWithNewLineNumbers (doc, localFile,
+														 "HTMLT11", FALSE);
+				  else if (DocumentMeta[doc]->xmlformat)
+					TtaExportDocumentWithNewLineNumbers (doc, localFile,
+														 "HTMLTX", FALSE);
+				  else
+					TtaExportDocumentWithNewLineNumbers (doc, localFile,
+														 "HTMLT", FALSE);
+			  }
             }
           else if (DocumentTypes[doc] == docSVG)
             TtaExportDocumentWithNewLineNumbers (doc, localFile,
@@ -5435,7 +5534,7 @@ static void ChangeDoctype (ThotBool isXml)
   doc = SavingDocument;
   root = TtaGetMainRoot (doc);
   elType.ElSSchema = TtaGetDocumentSSchema (doc);
-  if (strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     return;
 
   /* Update the namespace declaration for the HTML element */
@@ -6790,6 +6889,7 @@ void FreeAmayaStructures ()
       TtaFreeMemory (SavedDocumentURL);
       TtaFreeMemory (AttrHREFvalue);
       TtaFreeMemory (UserCSS);
+	  TtaFreeMemory (UserCSSForStr);
       TtaFreeMemory (URL_list);
       TtaFreeMemory (Template_list);
       TtaFreeMemory (AutoSave_list);
@@ -6931,11 +7031,19 @@ void InitAmaya (NotifyEvent * event)
    * $HOME/.amaya/amaya.css on Unix platforms
    * $HOME\amaya\amaya.css on Windows platforms
    */
+  /* for default CSS */
   ptr = (char *)TtaGetMemory (MAX_LENGTH);
   sprintf (ptr, "%s%c%s.css", s, DIR_SEP, TtaGetAppName());
   UserCSS = TtaStrdup (ptr);
   InitUserStyleSheet (UserCSS);
   TtaFreeMemory (ptr);
+  /* for structure CSS */
+  ptr = (char *)TtaGetMemory (MAX_LENGTH);
+  sprintf (ptr, "%s%c%s_structure.css", s, DIR_SEP, TtaGetAppName());
+  UserCSSForStr = TtaStrdup (ptr);
+  InitUserStyleSheet (UserCSSForStr);
+  TtaFreeMemory (ptr);
+
   /* check if the new location is set */
   ptr = TtaGetEnvString ("NEW_LOCATION");
   if (ptr == NULL)
@@ -7012,6 +7120,7 @@ void InitAmaya (NotifyEvent * event)
       MapAreas[i] = map;
       HSplit[i] = FALSE;
       VSplit[i] = FALSE;
+	  IsShowSections[i] = FALSE;
       /* initialize history */
       InitDocHistory (i);
     }

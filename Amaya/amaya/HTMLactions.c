@@ -69,6 +69,7 @@
 #include "UIcss_f.h"
 #include "Xml2thot_f.h"
 #include "wxdialogapi_f.h"
+#include "HTML5checker.h"
 
 #ifdef ANNOTATIONS
 #include "annotlib.h"
@@ -1157,7 +1158,7 @@ Element SearchNAMEattribute (Document doc, char *nameVal, Attribute ignoreAtt,
   char               *name;
 
   /* search all elements having an attribute NAME */
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_NAME;
   elFound = GetElemWithAttr (doc, attrType, nameVal, ignoreAtt, ignoreEl);
 
@@ -1247,7 +1248,7 @@ Element SearchNAMEattribute (Document doc, char *nameVal, Attribute ignoreAtt,
       if (attrType.AttrSSchema)
         {
           name = TtaGetSSchemaName (attrType.AttrSSchema);
-          if (strcmp(name, "HTML") &&
+          if (IsNotHTMLorHTML5(name) &&
               strcmp(name, "MathML") &&
               strcmp(name, "SVG"))
             {
@@ -1356,10 +1357,10 @@ void Do_follow_link_callback (int targetDocument, int status, char *urlName,
     {
       elType = TtaGetElementType (anchor);
       if (elType.ElTypeNum == HTML_EL_Anchor &&
-          !strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+          !IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         {
           /* it's an HTML A element. Change it's color */
-          docSchema =   TtaGetSSchema ("HTML", doc);
+          docSchema =   GetSSchemaHTMLorHTML5 (doc);
           if (docSchema && (doc != targetDocument || utf8path[0] == '#') && anchor)
             {
               /* search PseudoAttr attribute */
@@ -1399,7 +1400,7 @@ void Do_follow_link_callback (int targetDocument, int status, char *urlName,
 
       elType = TtaGetElementType (elFound);
       if (elType.ElTypeNum == HTML_EL_LINK &&
-          !strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+          !IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
         {
           /* the target is a HTML link element, follow this link */
           attrType.AttrSSchema = elType.ElSSchema;
@@ -1441,7 +1442,7 @@ ThotBool IsCSSLink (Element el, Document doc)
   char                buffer[MAX_LENGTH];
   int                 length;
 
-  attrType.AttrSSchema = TtaGetSSchema ("HTML", doc);
+  attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (doc);
   attrType.AttrTypeNum = HTML_ATTR_REL;
   attr = TtaGetAttribute (el, attrType);
   if (attr)
@@ -1523,7 +1524,7 @@ static ThotBool Do_follow_link (Element anchor, Element elSource,
   info = pathname = NULL;
   elType = TtaGetElementType (anchor);
   attrType.AttrTypeNum = 0;
-  HTMLSSchema = TtaGetSSchema ("HTML", doc);
+  HTMLSSchema = GetSSchemaHTMLorHTML5 (doc);
   isHTML = TtaSameSSchemas (elType.ElSSchema, HTMLSSchema);
   targetDocument = 0;
   PseudoAttr = NULL;
@@ -1830,7 +1831,7 @@ static ThotBool ActivateElement (Element element, Document doc)
   isSVG = FALSE;
   isXLink = FALSE;
   isHTML = FALSE;
-  if (!strcmp (name, "HTML"))
+  if (!IsNotHTMLorHTML5 (name))
     isHTML = TRUE;
   else if (!strcmp (name, "XLink"))
     isXLink = TRUE;
@@ -2078,7 +2079,7 @@ ThotBool DisplayUrlAnchor (Element element, Document doc)
           do
             {
               elType = TtaGetElementType (ancestor);
-              if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+              if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
                 {
                   if (elType.ElTypeNum == HTML_EL_LINK ||
                       elType.ElTypeNum == HTML_EL_Anchor)
@@ -2160,7 +2161,7 @@ void NextLinkOrFormElement (Document doc, View view)
   int                 i;
   int                 firstChar, lastChar;
 
-  schema = TtaGetSSchema ("HTML", doc);
+  schema = GetSSchemaHTMLorHTML5 (doc);
   attrType1.AttrTypeNum = HTML_ATTR_NAME;
   attrType1.AttrSSchema = schema;
   attrType2.AttrTypeNum = HTML_ATTR_HREF_;
@@ -2279,7 +2280,7 @@ void PreviousLinkOrFormElement (Document doc, View view)
       DocumentTypes[doc] == docSource)
     // do nothing
     return;
-  schema = TtaGetSSchema ("HTML", doc);
+  schema = GetSSchemaHTMLorHTML5 (doc);
   attrType1.AttrTypeNum = HTML_ATTR_NAME;
   attrType1.AttrSSchema = schema;
   attrType2.AttrTypeNum = HTML_ATTR_HREF_;
@@ -2419,7 +2420,7 @@ void AccessKeyHandler (Document doc, void *param)
   if (el)
     {
       elType = TtaGetElementType (el);
-      HTMLschema = TtaGetSSchema ("HTML", doc);
+      HTMLschema = GetSSchemaHTMLorHTML5 (doc);
       if (TtaSameSSchemas (elType.ElSSchema, HTMLschema) &&
           (elType.ElTypeNum == HTML_EL_LEGEND ||
            elType.ElTypeNum == HTML_EL_LABEL))
@@ -3027,7 +3028,7 @@ void UpdateContextSensitiveMenus (Document doc, View view)
   if (doc == 0)
     return;
   /* check if there are HTML elements in the document */
-  sch = TtaGetSSchema ("HTML", doc);
+  sch = GetSSchemaHTMLorHTML5 (doc);
   elType.ElSSchema = sch;
   withHTML = (DocumentTypes[doc] == docHTML && DocumentURLs[doc]);
   if (!withHTML)
@@ -3657,8 +3658,7 @@ void SynchronizeSourceView (NotifyElement *event)
                 {
                   if (DocumentTypes[otherDoc] == docHTML)
                     {
-                      attrType.AttrSSchema = TtaGetSSchema ("HTML",
-                                                            otherDoc);
+                      attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (otherDoc);
                       attrType.AttrTypeNum = HTML_ATTR_Highlight;
                       val = HTML_ATTR_Highlight_VAL_Yes_;
                     }
@@ -3688,8 +3688,7 @@ void SynchronizeSourceView (NotifyElement *event)
                     }
                   else if (DocumentTypes[otherDoc] == docLibrary)
                     {
-                      attrType.AttrSSchema = TtaGetSSchema ("HTML",
-                                                            otherDoc);
+                      attrType.AttrSSchema = GetSSchemaHTMLorHTML5 (otherDoc);
                       attrType.AttrTypeNum = HTML_ATTR_Highlight;
                       val = HTML_ATTR_Highlight_VAL_Yes_;
                     }
@@ -4109,7 +4108,7 @@ void SelectionChanged (NotifyElement *event)
             {
               elType = TtaGetElementType (child);
               s = TtaGetSSchemaName (elType.ElSSchema);
-              if (!strcmp (s, "HTML"))
+              if (!IsNotHTMLorHTML5 (s))
                 TtaRaiseDoctypePanels (WXAMAYA_DOCTYPE_XHTML);
             }
         }
@@ -4342,7 +4341,7 @@ void SetCharFontOrPhrase (int doc, int elemtype)
     blocktype = HTML_EL_DEL;
   else
     blocktype = elemtype;
-  if (!strcmp (TtaGetSSchemaName (elType.ElSSchema), "HTML"))
+  if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elType.ElSSchema)))
     {
       // check if a typed element is selected
       if (elType.ElTypeNum == elemtype || elType.ElTypeNum == blocktype)
@@ -4352,7 +4351,7 @@ void SetCharFontOrPhrase (int doc, int elemtype)
                 (firstChar == 1 && lastChar >= i)));
     }
   else
-    elType.ElSSchema = TtaGetSSchema ("HTML", doc);
+    elType.ElSSchema = GetSSchemaHTMLorHTML5 (doc);
 
   if (parent == NULL)
     {
@@ -4486,7 +4485,7 @@ void CopyLocation (Document doc, View view)
         el = TtaGetParent (el);
       name = TtaGetSSchemaName (elType.ElSSchema);
       attrType.AttrSSchema = elType.ElSSchema;
-      if (!strcmp (name, "HTML"))
+      if (!IsNotHTMLorHTML5 (name))
         attrType.AttrTypeNum = HTML_ATTR_ID;
       else if (!strcmp (name, "SVG"))
         attrType.AttrTypeNum = SVG_ATTR_xmlid;
@@ -4507,7 +4506,7 @@ void CopyLocation (Document doc, View view)
           strcat (msgBuffer, name);
           TtaFreeMemory (name);
         }
-      else if (!strcmp (name, "HTML"))
+      else if (!IsNotHTMLorHTML5 (name))
         {
           // add the name to document URL
           attrType.AttrTypeNum = HTML_ATTR_NAME;

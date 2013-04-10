@@ -70,6 +70,7 @@ static Document DocMathElementSelected = 0;
 #include "templateUtils_f.h"
 #include "templates.h"
 #include "templates_f.h"
+#include "HTML5checker.h"
 
 int CurrentMathEditMode = DEFAULT_MODE;
 
@@ -1056,7 +1057,7 @@ static Element AppendEmptyText (Element el, Document doc)
   else
     /* it's a MathML expression within another vocabulary */
     {
-      if (!strcmp (TtaGetSSchemaName (parentType.ElSSchema), "HTML"))
+      if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (parentType.ElSSchema)))
         /* a <math> element in a HTML element */
         {
           if (parentType.ElTypeNum == HTML_EL_Pseudo_paragraph ||
@@ -1393,7 +1394,7 @@ static void CreateMathConstruct (Document doc, View view, int construct, ...)
                    there */
                 parentType = TtaGetElementType (sibling);
                 if (parentType.ElTypeNum == HTML_EL_Block &&
-                    !strcmp (TtaGetSSchemaName (parentType.ElSSchema), "HTML"))
+                    !IsNotHTMLorHTML5 (TtaGetSSchemaName (parentType.ElSSchema)))
                   /* it's a HTML Block element. Transform it */
                   {
                     dispMode = TtaGetDisplayMode (doc);
@@ -1595,7 +1596,7 @@ static void CreateMathConstruct (Document doc, View view, int construct, ...)
                  there */
               parentType = TtaGetElementType (sibling);
               if (parentType.ElTypeNum == HTML_EL_Block &&
-                  !strcmp (TtaGetSSchemaName (parentType.ElSSchema), "HTML"))
+                  !IsNotHTMLorHTML5 (TtaGetSSchemaName (parentType.ElSSchema)))
                 /* it's a HTML Block element. Transform it */
                 {
                   parentType.ElTypeNum = HTML_EL_Pseudo_paragraph;
@@ -7420,7 +7421,7 @@ void MathElementPasted (NotifyElement *event)
       if (parent)
         {
           elTypeParent = TtaGetElementType (parent);
-          if (!strcmp (TtaGetSSchemaName (elTypeParent.ElSSchema),  "HTML"))
+          if (!IsNotHTMLorHTML5 (TtaGetSSchemaName (elTypeParent.ElSSchema)))
             CheckPseudoParagraph (event->element, doc);
         }
       /* It is the <math> element */

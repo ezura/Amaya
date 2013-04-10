@@ -5,6 +5,7 @@
  *
  */
 
+
 /*
   This module handles document translation.
   It travels the abstract trees of a document and produces an
@@ -4688,7 +4689,13 @@ void ExportXmlElement (Document doc, PtrElement pEl,
       /* Main output file */
       if (strcmp (pEl->ElStructSchema->SsName, "HTML") == 0)
         {
-          if (LoadTranslationSchema ("HTMLTX", pEl->ElStructSchema))
+		  if (LoadTranslationSchema ("HTMLTX", pEl->ElStructSchema))
+            TranslateTree (pEl, doc, TRUE, lineBreak, FALSE, FALSE);
+        }
+	  /* Main output file */
+      if (strcmp (pEl->ElStructSchema->SsName, "HTML5") == 0)
+        {
+          if (LoadTranslationSchema ("HTML5TX", pEl->ElStructSchema))
             TranslateTree (pEl, doc, TRUE, lineBreak, FALSE, FALSE);
         }
       else if (strcmp (pEl->ElStructSchema->SsName, "MathML") == 0)
